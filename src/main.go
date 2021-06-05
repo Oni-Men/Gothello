@@ -19,7 +19,7 @@ var manager = game.NewManager()
 
 func main() {
 
-	fs := http.FileServer(http.Dir("../static"))
+	fs := http.FileServer(http.Dir("../public"))
 
 	http.Handle("/", fs)
 	http.HandleFunc("/game", handleClients)

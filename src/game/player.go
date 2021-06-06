@@ -2,8 +2,6 @@ package game
 
 import (
 	"github.com/gorilla/websocket"
-
-	"othello/network"
 )
 
 //Player オセロのプレイヤーを管理します
@@ -12,7 +10,7 @@ type Player struct {
 	GameID int
 	Conn   *websocket.Conn
 	Name   string
-	Color  string
+	Color  Disc
 	Turn   bool
 }
 
@@ -27,7 +25,10 @@ func NewPlayer(name string, ws *websocket.Conn) *Player {
 	return p
 }
 
-func (p *Player) Send(ctx *network.Context) {
+func (p *Player) Send(ctx *Context) {
+	if p == nil {
+		return
+	}
 	if p.Conn != nil {
 		p.Conn.WriteJSON(ctx)
 	}

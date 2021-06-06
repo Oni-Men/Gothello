@@ -1,4 +1,4 @@
-package network
+package game
 
 //ContextType コンテキストのタイプ
 type ContextType int
@@ -8,8 +8,7 @@ const (
 	FindOpponent ContextType = iota
 	OpponentFound
 	TurnUpdate
-	DiscPlaced
-	DiscUpdated
+	BoardUpdate
 	GameOver
 	ClickBoard
 )
@@ -17,14 +16,15 @@ const (
 //Context 通信するデータ
 type Context struct {
 	Type          ContextType
-	OpponentColor string
-	OpponentName  string
 	MyName        string
-	MyColor       string
-	TurnColor     string
+	OpponentName  string
+	MyColor       Disc
+	OpponentColor Disc
+	TurnColor     Disc
+	DiscColor     string
 	DiscX         int
 	DiscY         int
-	DiscColor     string
+	Board         [8][8]Disc
 	Result        GameResult
 }
 

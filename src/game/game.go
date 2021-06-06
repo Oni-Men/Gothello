@@ -1,19 +1,18 @@
 package game
 
-import (
-	"othello/network"
-)
-
 //Game オセロのゲームを管理する
 type Game struct {
-	id             int
-	manager        *Manager
-	Board          [8][8]*Disc
-	Players        [2]*Player
-	TurnColor      string
-	Broadcast      chan Message
-	PassContinuous int
-	GameOvered     bool
+	id          int
+	manager     *Manager
+	Board       [8][8]Disc
+	BlackPlayer *Player
+	WhitePlayer *Player
+	Spectators  [16]*Player
+	TurnColor   Disc
+	Broadcast   chan Message
+	pass        int
+	CanPlace    bool
+	GameOvered  bool
 }
 
 //New 新しいゲームを作成します
@@ -24,62 +23,72 @@ func New(p1, p2 *Player, manager *Manager) *Game {
 	game.manager = manager
 
 	game.InitBoard()
-	game.Players[0], game.Players[1] = p1, p2
+	game.BlackPlayer = p1
+	game.WhitePlayer = p2
 
 	game.updateTurn()
 
 	return game
 }
 
+//ok
 func (g *Game) InitBoard() {
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			g.Board[y][x] = NewDisc(x, y)
-		}
-	}
-
-	g.Board[3][3].Color = DiscWhite
-	g.Board[3][4].Color = DiscBlack
-	g.Board[4][3].Color = DiscBlack
-	g.Board[4][4].Color = DiscWhite
-
+	g.Board[3][3] = DiscWhite
+	g.Board[3][4] = DiscBlack
+	g.Board[4][3] = DiscBlack
+	g.Board[4][4] = DiscWhite
 }
 
-func (g *Game) ClickBoard(x, y int, color string) {
-	disc := g.Board[y][x]
+//ok
+func (g *Game) ClickBoard(x, y int, color Disc) {
+	if g.Board[y][x] == DiscTransparent {
 
-	if disc.Color == DiscTransparent {
-		disc.Color = color
+		flippables, n := g.getFlippableDiscs(x, y)
+		f := false
+		c := 0
 
-		betweens := g.findBetweenDiscs(disc)
+		println(n)
 
-		if len(betweens) > 0 {
-			g.noticeDiscPlaced(disc)
+		for i := 0; i < 0; i++ {
+			for k := 0; k < 8; k++ {
+				if flippables[i][k] == 0 {
+					continue
+				}
 
-			for _, d := range betweens {
-				d.Color = disc.Color
-				g.noticeDiscUpdated(d)
+				f = true
+				g.Board[i][k] = color
+
+				_, n := g.getFlippableDiscs(k, i)
+				c += n
 			}
+		}
 
-			g.updateTurn()
+		if c > 0 {
+			g.CanPlace = true
 		} else {
-			disc.Color = DiscTransparent
+			g.CanPlace = false
+		}
+
+		if f {
+			g.Board[y][x] = color
+			g.noticeBoardUpdate()
+			g.updateTurn()
 		}
 	}
 }
 
+//ok
 func (g *Game) updateTurn() {
-
 	if g.GameOvered {
 		return
 	}
 
-	if g.PassContinuous > 2 {
+	if g.pass > 2 {
 		g.noticeGameOver(nil)
 	}
 
 	switch g.TurnColor {
-	case "":
+	case DiscTransparent:
 		g.TurnColor = DiscBlack
 	case DiscBlack:
 		g.TurnColor = DiscWhite
@@ -87,59 +96,41 @@ func (g *Game) updateTurn() {
 		g.TurnColor = DiscBlack
 	}
 
-	for _, player := range g.Players {
-		player.Send(&network.Context{
-			Type:      network.TurnUpdate,
-			TurnColor: g.TurnColor,
-		})
-	}
+	g.noticeAll(&Context{
+		Type:      TurnUpdate,
+		TurnColor: g.TurnColor,
+	})
 
-	if !g.canPlaceDisc() {
-		g.updateTurn()
-		g.PassContinuous++
-	} else {
-		g.PassContinuous = 0
-	}
+	// if g.canPlaceDisc() {
+	// 	g.pass = 0
+	// } else {
+	// 	g.pass++
+	// 	g.updateTurn()
+	// }
 }
 
-func (g *Game) noticeDiscPlaced(disc *Disc) {
+//ok
+func (g *Game) noticeBoardUpdate() {
 
 	if g.GameOvered {
 		return
 	}
 
-	for _, player := range g.Players {
-		player.Send(&network.Context{
-			Type:      network.DiscPlaced,
-			DiscX:     disc.X,
-			DiscY:     disc.Y,
-			DiscColor: disc.Color,
-		})
-	}
+	g.noticeAll(&Context{
+		Type:  BoardUpdate,
+		Board: g.Board,
+	})
 }
 
-func (g *Game) noticeDiscUpdated(disc *Disc) {
-
-	if g.GameOvered {
-		return
-	}
-
-	for _, player := range g.Players {
-		player.Send(&network.Context{
-			Type:      network.DiscUpdated,
-			DiscX:     disc.X,
-			DiscY:     disc.Y,
-			DiscColor: disc.Color,
-		})
-	}
-}
-
+//ok
 func (g *Game) noticeGameOver(winner *Player) {
 	white, black := 0, 0
 
-	for _, line := range g.Board {
-		for _, disc := range line {
-			switch disc.Color {
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			disc := g.Board[y][x]
+
+			switch disc {
 			case DiscBlack:
 				black++
 			case DiscWhite:
@@ -149,128 +140,124 @@ func (g *Game) noticeGameOver(winner *Player) {
 	}
 
 	if winner == nil {
-		var winnerColor string
-		if white == black {
-			winnerColor = DiscTransparent
-		} else if white > black {
-			winnerColor = DiscWhite
+		if white > black {
+			winner = g.WhitePlayer
 		} else {
-			winnerColor = DiscBlack
-		}
-		for _, p := range g.Players {
-			if p.Color == winnerColor {
-				winner = p
-				break
-			}
+			winner = g.BlackPlayer
 		}
 	}
 
-	for _, p := range g.Players {
-		p.Send(&network.Context{
-			Type: network.GameOver,
-			Result: network.GameResult{
-				ID:     g.id,
-				Black:  black,
-				White:  white,
-				Winner: winner.Name,
-			},
-		})
-	}
+	g.noticeAll(&Context{
+		Type: GameOver,
+		Result: GameResult{
+			ID:     g.id,
+			Black:  black,
+			White:  white,
+			Winner: winner.Name,
+		},
+	})
 
 	g.GameOvered = true
 	g.manager.Remove(g.id)
 }
 
 func (g *Game) canPlaceDisc() bool {
-
-	transparent, countCanPlace := 0, 0
-
-	for y, line := range g.Board {
-		for x, disc := range line {
-			if disc.Color == DiscTransparent {
-				transparent++
-
-				ghost := &Disc{
-					X:     x,
-					Y:     y,
-					Color: g.TurnColor,
-				}
-
-				betweens := g.findBetweenDiscs(ghost)
-
-				if len(betweens) > 0 {
-					countCanPlace++
-				}
+	c := 0
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			if g.Board[y][x] == DiscTransparent {
+				c++
 			}
 		}
 	}
 
-	if transparent == 0 {
+	if c == 0 {
 		g.noticeGameOver(nil)
 		return false
 	}
 
-	if countCanPlace == 0 {
-		return false
-	}
-
-	return true
+	return g.CanPlace
 }
 
-func (g *Game) findBetweenDiscs(start *Disc) []*Disc {
-	inBetweens := make([]*Disc, 0, 64)
-	inBetweens = append(inBetweens, g.findByLine(1, 0, start)...)
-	inBetweens = append(inBetweens, g.findByLine(-1, 0, start)...)
-	inBetweens = append(inBetweens, g.findByLine(0, 1, start)...)
-	inBetweens = append(inBetweens, g.findByLine(0, -1, start)...)
-	inBetweens = append(inBetweens, g.findByLine(1, -1, start)...)
-	inBetweens = append(inBetweens, g.findByLine(-1, 1, start)...)
-	inBetweens = append(inBetweens, g.findByLine(1, 1, start)...)
-	inBetweens = append(inBetweens, g.findByLine(-1, -1, start)...)
-
-	return inBetweens
+func (g *Game) getFlippableDiscs(sx, sy int) (*[8][8]byte, int) {
+	n := 0
+	flippables := &[8][8]byte{}
+	n += g.flippablesOfLine(sx, sy, 1, 0, flippables)
+	n += g.flippablesOfLine(sx, sy, -1, 0, flippables)
+	n += g.flippablesOfLine(sx, sy, 0, 1, flippables)
+	n += g.flippablesOfLine(sx, sy, 0, -1, flippables)
+	n += g.flippablesOfLine(sx, sy, 1, -1, flippables)
+	n += g.flippablesOfLine(sx, sy, -1, 1, flippables)
+	n += g.flippablesOfLine(sx, sy, 1, 1, flippables)
+	n += g.flippablesOfLine(sx, sy, -1, -1, flippables)
+	return flippables, n
 }
 
-func (g *Game) findByLine(tox, toy int, disc *Disc) []*Disc {
-	x, y := disc.X, disc.Y
+func (g *Game) flippablesOfLine(x, y, tx, ty int, flippables *[8][8]byte) int {
+	n := 0
+	c := g.Board[y][x]
 
-	inBetweens := make([]*Disc, 0, 8)
+	tmp := &[8][8]byte{}
 
 	for {
-		x, y = x+tox, y+toy
+		x, y = x+tx, y+ty
 
-		if x < 0 || x >= 8 {
-			inBetweens = make([]*Disc, 0, 8)
-			break
-		}
-
-		if y < 0 || y >= 8 {
-			inBetweens = make([]*Disc, 0, 8)
+		if x < 0 || x >= 8 || y < 0 || y >= 8 {
+			tmp = nil
 			break
 		}
 
 		d := g.Board[y][x]
 
-		if d.Color == DiscTransparent {
-			inBetweens = make([]*Disc, 0, 8)
+		if d == DiscTransparent {
+			tmp = nil
 			break
 		}
 
-		if d.Color == disc.Color {
+		if d == c {
 			break
 		}
-		inBetweens = append(inBetweens, d)
+
+		tmp[y][x] = 1
 
 	}
-	return inBetweens
+
+	if tmp == nil {
+		return 0
+	}
+
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			if flippables[y][x] != 0 {
+				continue
+			}
+
+			flippables[y][x] = tmp[y][x]
+			if tmp[y][x] == 1 {
+				n++
+			}
+		}
+	}
+
+	return n
 }
 
 func (g *Game) ID() int {
 	return g.id
 }
 
+//ok
+func (g *Game) noticeAll(ctx *Context) {
+	g.BlackPlayer.Send(ctx)
+	g.WhitePlayer.Send(ctx)
+	for _, p := range g.Spectators {
+		p.Send(ctx)
+	}
+}
+
+//todo
 func (g *Game) GameOverByExit(player *Player) {
-	for _, p := range g.Players {
+	for _, p := range g.Spectators {
 		if p.ID != player.ID {
 			g.noticeGameOver(p)
 			break

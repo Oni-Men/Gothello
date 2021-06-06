@@ -8,7 +8,6 @@ import (
 	"github.com/gorilla/websocket"
 
 	"othello/game"
-	"othello/network"
 )
 
 var clients = make(map[*websocket.Conn]bool)
@@ -44,8 +43,7 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 	var player *game.Player
 
 	for {
-		ctx := new(network.Context)
-
+		ctx := new(game.Context)
 		err := ws.ReadJSON(ctx)
 
 		if err != nil {
@@ -62,14 +60,14 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 		}
 
 		switch ctx.Type {
-		case network.FindOpponent:
+		case game.FindOpponent:
 			if ctx.MyName == "" && player != nil {
 				q.Remove(player)
 			} else {
 				player = game.NewPlayer(ctx.MyName, ws)
 				q.Push(player)
 			}
-		case network.ClickBoard:
+		case game.ClickBoard:
 			game, ok := manager.Get(player.GameID)
 			if ok && game.TurnColor == player.Color {
 				game.ClickBoard(ctx.DiscX, ctx.DiscY, game.TurnColor)
@@ -86,15 +84,15 @@ func matching() {
 			a, b := q.Pop(), q.Pop()
 			a.Color, b.Color = game.DiscWhite, game.DiscBlack
 
-			a.Send(&network.Context{
-				Type:          network.OpponentFound,
+			a.Send(&game.Context{
+				Type:          game.OpponentFound,
 				OpponentName:  b.Name,
 				OpponentColor: b.Color,
 				MyColor:       a.Color,
 			})
 
-			b.Send(&network.Context{
-				Type:          network.OpponentFound,
+			b.Send(&game.Context{
+				Type:          game.OpponentFound,
 				OpponentColor: a.Color,
 				OpponentName:  a.Name,
 				MyColor:       b.Color,

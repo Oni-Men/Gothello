@@ -11,12 +11,12 @@ func TestQueuePushAndPop(t *testing.T) {
 	q := game.NewQueue()
 
 	players := []*game.Player{
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
 	}
 
 	for _, p := range players {
@@ -40,12 +40,12 @@ func TestQueueRemove(t *testing.T) {
 	q := game.NewQueue()
 
 	players := []*game.Player{
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
-		randomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
+		RandomPlayer(),
 	}
 
 	for _, p := range players {
@@ -68,7 +68,17 @@ func TestQueueRemove(t *testing.T) {
 
 }
 
-func randomPlayer() *game.Player {
+func TestGameUpdate(t *testing.T) {
+
+	manager := game.NewManager()
+	game := game.New(RandomPlayer(), RandomPlayer(), manager)
+
+	manager.Add(game)
+
+	game.ClickBoard(5, 3, game.TurnColor)
+}
+
+func RandomPlayer() *game.Player {
 	return &game.Player{
 		ID:   game.RandomID(),
 		Name: randomName(6),

@@ -8,7 +8,7 @@ import (
 func TestGame(t *testing.T) {
 
 	manager := game.NewManager()
-	game := game.New(randomPlayer(), randomPlayer(), manager)
+	game := game.New(RandomPlayer(), RandomPlayer(), manager)
 
 	manager.Add(game)
 

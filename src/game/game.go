@@ -41,6 +41,10 @@ func (g *Game) InitBoard() {
 
 //ok
 func (g *Game) ClickBoard(x, y int, color Disc) {
+	if x < 0 || x >= 8 || y < 8 || y >= 8 {
+		return
+	}
+
 	if g.Board[y][x] == DiscTransparent {
 
 		flippables, n := g.getFlippableDiscs(x, y)
@@ -49,7 +53,7 @@ func (g *Game) ClickBoard(x, y int, color Disc) {
 
 		println(n)
 
-		for i := 0; i < 0; i++ {
+		for i := 0; i < 8; i++ {
 			for k := 0; k < 8; k++ {
 				if flippables[i][k] == 0 {
 					continue
@@ -101,12 +105,12 @@ func (g *Game) updateTurn() {
 		TurnColor: g.TurnColor,
 	})
 
-	// if g.canPlaceDisc() {
-	// 	g.pass = 0
-	// } else {
-	// 	g.pass++
-	// 	g.updateTurn()
-	// }
+	if g.canPlaceDisc() {
+		g.pass = 0
+	} else {
+		g.pass++
+		g.updateTurn()
+	}
 }
 
 //ok

@@ -2,12 +2,19 @@
 	import Board from "./board.svelte";
 
 	export let name;
+	export let score;
+
+	export let opponent;
 </script>
 
 <main>
-	<h1>Hello {name}!</h1>
+	<p>{ name }</p>
+	<p>{ score }</p>
+
+	<p>{ opponent.name }</p>
+	<p>{ opponent.score }</p>
+
 	<Board />
-	<p>Visit the <a href="https://svelte.dev/tutorial">Svelte tutorial</a> to learn how to build Svelte apps.</p>
 </main>
 
 <style>

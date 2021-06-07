@@ -1,5 +1,7 @@
 package game
 
+import "othello/generator"
+
 //Game オセロのゲームを管理する
 type Game struct {
 	id          int
@@ -7,60 +9,54 @@ type Game struct {
 	Board       [8][8]Disc
 	BlackPlayer *Player
 	WhitePlayer *Player
-	Spectators  [16]*Player
+	Spectators  []*Player
 	TurnColor   Disc
 	Broadcast   chan Message
 	pass        int
-	CanPlace    bool
+	canPlace    bool
 	GameOvered  bool
 }
 
 //New 新しいゲームを作成します
 func New(p1, p2 *Player, manager *Manager) *Game {
-	game := new(Game)
+	g := &Game{
+		canPlace:    true,
+		id:          generator.RandomID(),
+		BlackPlayer: p1,
+		WhitePlayer: p2,
+		manager:     manager,
+	}
 
-	game.id = RandomID()
-	game.manager = manager
-
-	game.InitBoard()
-	game.BlackPlayer = p1
-	game.WhitePlayer = p2
-
-	game.updateTurn()
-
-	return game
-}
-
-//ok
-func (g *Game) InitBoard() {
 	g.Board[3][3] = DiscWhite
 	g.Board[3][4] = DiscBlack
 	g.Board[4][3] = DiscBlack
 	g.Board[4][4] = DiscWhite
+
+	g.updateTurn()
+
+	return g
 }
 
 //ok
-func (g *Game) ClickBoard(x, y int, color Disc) {
-	if x < 0 || x >= 8 || y < 8 || y >= 8 {
+func (g *Game) ClickBoard(x, y int) {
+	if x < 0 || x >= 8 || y < 0 || y >= 8 {
 		return
 	}
 
 	if g.Board[y][x] == DiscTransparent {
 
-		flippables, n := g.getFlippableDiscs(x, y)
-		f := false
+		flippables, _ := g.getFlippableDiscs(x, y)
+		flipped := false
+
 		c := 0
-
-		println(n)
-
 		for i := 0; i < 8; i++ {
 			for k := 0; k < 8; k++ {
 				if flippables[i][k] == 0 {
 					continue
 				}
 
-				f = true
-				g.Board[i][k] = color
+				flipped = true
+				g.Board[i][k] = g.TurnColor
 
 				_, n := g.getFlippableDiscs(k, i)
 				c += n
@@ -68,13 +64,13 @@ func (g *Game) ClickBoard(x, y int, color Disc) {
 		}
 
 		if c > 0 {
-			g.CanPlace = true
+			g.canPlace = true
 		} else {
-			g.CanPlace = false
+			g.canPlace = false
 		}
 
-		if f {
-			g.Board[y][x] = color
+		if flipped {
+			g.Board[y][x] = g.TurnColor
 			g.noticeBoardUpdate()
 			g.updateTurn()
 		}
@@ -100,22 +96,23 @@ func (g *Game) updateTurn() {
 		g.TurnColor = DiscBlack
 	}
 
-	g.noticeAll(&Context{
-		Type:      TurnUpdate,
-		TurnColor: g.TurnColor,
-	})
-
 	if g.canPlaceDisc() {
 		g.pass = 0
 	} else {
 		g.pass++
 		g.updateTurn()
 	}
+
+	g.noticeAll(&Context{
+		Type:      TurnUpdate,
+		TurnColor: g.TurnColor,
+	})
+
+	g.noticeBoardUpdate()
 }
 
 //ok
 func (g *Game) noticeBoardUpdate() {
-
 	if g.GameOvered {
 		return
 	}
@@ -170,8 +167,10 @@ func (g *Game) canPlaceDisc() bool {
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 8; x++ {
 			if g.Board[y][x] == DiscTransparent {
-				c++
+				_, n := g.getFlippableDiscs(x, y)
+				c += n
 			}
+
 		}
 	}
 
@@ -180,7 +179,7 @@ func (g *Game) canPlaceDisc() bool {
 		return false
 	}
 
-	return g.CanPlace
+	return true
 }
 
 func (g *Game) getFlippableDiscs(sx, sy int) (*[8][8]byte, int) {
@@ -199,45 +198,38 @@ func (g *Game) getFlippableDiscs(sx, sy int) (*[8][8]byte, int) {
 
 func (g *Game) flippablesOfLine(x, y, tx, ty int, flippables *[8][8]byte) int {
 	n := 0
-	c := g.Board[y][x]
-
-	tmp := &[8][8]byte{}
+	flipped := &[8][8]byte{}
 
 	for {
 		x, y = x+tx, y+ty
 
 		if x < 0 || x >= 8 || y < 0 || y >= 8 {
-			tmp = nil
+			flipped = nil
 			break
 		}
 
 		d := g.Board[y][x]
 
 		if d == DiscTransparent {
-			tmp = nil
+			flipped = nil
 			break
 		}
 
-		if d == c {
+		if d == g.TurnColor {
 			break
 		}
 
-		tmp[y][x] = 1
-
+		flipped[y][x] = 1
 	}
 
-	if tmp == nil {
+	if flipped == nil {
 		return 0
 	}
 
-	for y := 0; y < 8; y++ {
-		for x := 0; x < 8; x++ {
-			if flippables[y][x] != 0 {
-				continue
-			}
-
-			flippables[y][x] = tmp[y][x]
-			if tmp[y][x] == 1 {
+	for y = 0; y < 8; y++ {
+		for x = 0; x < 8; x++ {
+			if flipped[y][x] == 1 {
+				flippables[y][x] = flipped[y][x]
 				n++
 			}
 		}
@@ -248,6 +240,16 @@ func (g *Game) flippablesOfLine(x, y, tx, ty int, flippables *[8][8]byte) int {
 
 func (g *Game) ID() int {
 	return g.id
+}
+
+func (g *Game) IsTurnPlayer(p *Player) bool {
+	switch g.TurnColor {
+	case DiscBlack:
+		return p == g.BlackPlayer
+	case DiscWhite:
+		return p == g.WhitePlayer
+	}
+	return false
 }
 
 //ok
@@ -261,6 +263,9 @@ func (g *Game) noticeAll(ctx *Context) {
 
 //todo
 func (g *Game) GameOverByExit(player *Player) {
+	if player == nil {
+		return
+	}
 	for _, p := range g.Spectators {
 		if p.ID != player.ID {
 			g.noticeGameOver(p)

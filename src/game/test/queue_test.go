@@ -3,6 +3,7 @@ package game
 import (
 	"math/rand"
 	"othello/game"
+	"othello/generator"
 	"strings"
 	"testing"
 )
@@ -75,12 +76,12 @@ func TestGameUpdate(t *testing.T) {
 
 	manager.Add(game)
 
-	game.ClickBoard(5, 3, game.TurnColor)
+	game.ClickBoard(5, 3)
 }
 
 func RandomPlayer() *game.Player {
 	return &game.Player{
-		ID:   game.RandomID(),
+		ID:   generator.RandomID(),
 		Name: randomName(6),
 	}
 }

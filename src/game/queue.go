@@ -61,9 +61,10 @@ func (q *Queue) Remove(player *Player) *Player {
 	curr := q.first
 
 	for curr != nil {
-		print(curr.player.Name)
 		if curr.player.ID == player.ID {
-			prev.next = curr.next
+			if prev != nil {
+				prev.next = curr.next
+			}
 			q.length--
 			return curr.player
 		}

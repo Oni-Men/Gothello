@@ -12,5 +12,5 @@ func TestGame(t *testing.T) {
 
 	manager.Add(game)
 
-	game.ClickBoard(5, 3, game.TurnColor)
+	game.ClickBoard(5, 3)
 }

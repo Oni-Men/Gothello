@@ -1,6 +1,8 @@
 package game
 
 import (
+	"othello/generator"
+
 	"github.com/gorilla/websocket"
 )
 
@@ -16,7 +18,7 @@ type Player struct {
 
 func NewPlayer(name string, ws *websocket.Conn) *Player {
 	p := &Player{
-		ID:    RandomID(),
+		ID:    generator.RandomID(),
 		Color: DiscTransparent,
 		Name:  name,
 		Conn:  ws,

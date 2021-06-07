@@ -11,7 +11,7 @@ ws.onmessage = function (e) {
 	const data = JSON.parse(e.data);
 
 	switch (data.Type) {
-		case Define.OPPONENT_FOUND:
+		case Define.GAME_INFO:
 			opponent = new Player(data.OpponentName, OpponentColor);
 			self.color = data.MyColor;
 			game_state = GAME_STATE_PLAYING;

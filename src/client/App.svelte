@@ -1,35 +1,23 @@
 <script>
 	import Board from "./board.svelte";
+	let canvas;
+	let width = window.innerWidth;
+	let height = window.innerHeight;
 
-	export let name;
-	export let score;
-
-	export let opponent;
+	window.addEventListener("resize", () => {
+		width = window.innerWidth;
+		height = window.innerHeight;
+	});
 </script>
 
 <main>
-	<p>{ name }</p>
-	<p>{ score }</p>
-
-	<p>{ opponent.name }</p>
-	<p>{ opponent.score }</p>
-
-	<Board />
+	<canvas bind:this={canvas} {width} {height} />
 </main>
 
 <style>
 	main {
 		text-align: center;
-		padding: 1em;
-		max-width: 240px;
 		margin: 0 auto;
-	}
-
-	h1 {
-		color: #ff3e00;
-		text-transform: uppercase;
-		font-size: 4em;
-		font-weight: 100;
 	}
 
 	@media (min-width: 640px) {

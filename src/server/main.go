@@ -20,7 +20,7 @@ var (
 )
 
 func main() {
-	fs := http.FileServer(http.Dir("../public"))
+	fs := http.FileServer(http.Dir("../../public"))
 
 	http.Handle("/", fs)
 	http.HandleFunc("/game", handleClients)

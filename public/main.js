@@ -23,7 +23,8 @@ const AUTHENTICATION = 7;
 let token = "";
 let playerId = 0;
 
-const ws = new WebSocket(`ws://${window.location.host}/game`);
+//const ws = new WebSocket(`ws://${window.location.host}/game`);
+const ws = new WebSocket(`ws://localhost/game`);
 const canvas = document.querySelector("#canvas");
 const g = canvas.getContext("2d");
 
@@ -34,9 +35,6 @@ const BOARD_SIZE = Math.min(canvas.width, canvas.height) * 0.8;
 const GRID_SIZE = BOARD_SIZE / 8;
 
 let board = [];
-
-let opponent_data;
-let my_color = BG;
 let game_state = GAME_STATE_MAIN_MENU;
 let result = {};
 

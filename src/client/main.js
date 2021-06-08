@@ -6,7 +6,8 @@ var self = null;
 var opponent = null;
 var board = null;
 
-const ws = new WebSocket(`ws://${window.location.host}/game`);
+// const ws = new WebSocket(`ws://${window.location.host}/game`);
+const ws = new WebSocket(`ws://localhost/game`);
 ws.onmessage = function (e) {
 	const data = JSON.parse(e.data);
 
@@ -34,11 +35,11 @@ const app = new App({
 	props: {
 		name: localStorage.getItem("nickname"),
 		game: null,
-		sendJSON,
+		token: null,
 	},
 });
 
-function sendJSON(data) {
+export function sendJson(data) {
 	try {
 		ws.send(JSON.stringify(data));
 	} catch (error) {

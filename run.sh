@@ -1,2 +1,3 @@
-go build ./src/main.go
-./main.exe
+#yarn build
+cd ./src/server
+go run main.go

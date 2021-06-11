@@ -27,6 +27,8 @@ export function handleOpponentFound(ctx) {}
 
 export function handleTurnUpdate(ctx) {}
 
-export function handleBoardUpdate(ctx) {}
+export function handleBoardUpdate(ctx) {
+	board = ctx.Board;
+}
 
 export function handleGameOver(ctx) {}

@@ -8,7 +8,7 @@ export let program = null;
 export const attrs = {};
 export const unifms = {};
 
-const translation = [0, 0, -5];
+const translation = [0, 0, 0];
 const rotation = [toRadian(30), 0, 0];
 const scale = [1, 1, 1];
 const color = [1, 1, 1, 0.9];
@@ -43,8 +43,8 @@ export function init(gl) {
   attrs.normal = gl.getAttribLocation(program, "a_normal");
   unifms.diffuse = gl.getUniformLocation(program, "u_diffuse");
   unifms.lightDirection = gl.getUniformLocation(program, "u_lightDirection");
-  unifms.projectionMatrix = gl.getUniformLocation(program, "projectionMatrix");
-  unifms.modelViewMatrix = gl.getUniformLocation(program, "modelViewMatrix");
+  unifms.mvpMatrix = gl.getUniformLocation(program, "mvpMatrix");
+  unifms.invMatrix = gl.getUniformLocation(program, "invMatrix");
 }
 
 export function renderGlobal(gl, models, mouse, keyboard) {
@@ -57,25 +57,34 @@ export function renderGlobal(gl, models, mouse, keyboard) {
   const disc = models["disc"];
 
   const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-  const projectionMatrix = mat4.create();
-  const camera = mat4.create();
-  mat4.lookAt(camera, [0, 0, -6], [0, 0, 0], [0, -1, 0]);
 
-  const mvMatrix = mat4.create();
-  mat4.invert(mvMatrix, camera);
-  mat4.perspective(projectionMatrix, toRadian(60), aspect, 0.01, 100.0);
+  const mvpMatrix = mat4.create();
+  const invMatrix = mat4.create();
+  const tmpMatrix = mat4.create();
+
+  const mMatrix = mat4.create();
+  const vMatrix = mat4.create();
+  const pMatrix = mat4.create();
+
+  mat4.lookAt(vMatrix, [0, 0, -6], [0, 0, 0], [0, -1, 0]);
+  mat4.perspective(pMatrix, toRadian(60), aspect, 0.01, 100.0);
+  mat4.mul(tmpMatrix, pMatrix, vMatrix);
 
   rotation[0] += 0.01;
 
-  mat4.translate(mvMatrix, mvMatrix, [0.0, 0.0, 0.0]);
-  mat4.rotateX(mvMatrix, mvMatrix, rotation[0]);
-  mat4.rotateY(mvMatrix, mvMatrix, rotation[1]);
-  mat4.rotateZ(mvMatrix, mvMatrix, rotation[2]);
+  mat4.translate(mMatrix, mMatrix, translation);
+  mat4.rotateX(mMatrix, mMatrix, rotation[0]);
+  mat4.rotateY(mMatrix, mMatrix, rotation[1]);
+  mat4.rotateZ(mMatrix, mMatrix, rotation[2]);
+  mat4.scale(mMatrix, mMatrix, scale);
+
+  mat4.mul(mvpMatrix, tmpMatrix, mMatrix);
+  mat4.invert(invMatrix, mMatrix);
 
   gl.useProgram(program);
-  gl.uniformMatrix4fv(unifms.projectionMatrix, false, projectionMatrix);
-  gl.uniformMatrix4fv(unifms.modelViewMatrix, false, mvMatrix);
-  gl.uniform3fv(unifms.lightDirection, [0, 0, 5]);
+  gl.uniformMatrix4fv(unifms.mvpMatrix, false, mvpMatrix);
+  gl.uniformMatrix4fv(unifms.invMatrix, false, invMatrix);
+  gl.uniform3fv(unifms.lightDirection, [0, -2, -5]);
 
   for (const geometory of disc) {
     switch (geometory.material) {

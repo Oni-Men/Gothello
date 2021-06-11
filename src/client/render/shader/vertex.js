@@ -2,12 +2,17 @@ export default `
 attribute vec4 position;
 attribute vec3 a_normal;
 
-uniform mat4 projectionMatrix;
-uniform mat4 modelViewMatrix;
+uniform vec4 u_diffuse;
+uniform vec3 u_lightDirection;
 
-varying vec3 v_normal;
+uniform mat4 mvpMatrix;
+uniform mat4 invMatrix;
+
+varying vec4 v_color;
 
 void main() {
-  gl_Position = projectionMatrix * modelViewMatrix * position;
-  v_normal = a_normal;
+  vec3 invLight = normalize(invMatrix * vec4(u_lightDirection, 0.0)).xyz;
+  float light = clamp(dot(a_normal, invLight), 0.1, 1.0);
+  v_color =  vec4(u_diffuse.rgb * light, u_diffuse.a);
+  gl_Position = mvpMatrix * position;
 }`;

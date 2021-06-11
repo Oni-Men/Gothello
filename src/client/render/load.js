@@ -60,8 +60,8 @@ export async function parseObj(text) {
     index = parseInt(indices[0]) - 1;
     geometory.vertices.push(...vertPositions[index]);
 
-    if (!indices[1]) return;
-    index = parseInt(indices[1]) - 1;
+    if (!indices[2]) return;
+    index = parseInt(indices[2]) - 1;
     geometory.normals.push(...faceNormals[index]);
   }
 

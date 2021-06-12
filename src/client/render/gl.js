@@ -66,19 +66,3 @@ export function createIBO(gl, data) {
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
   return ibo;
 }
-
-export function toRadian(deg) {
-  return deg * (Math.PI / 180);
-}
-
-export function toDegree(rad) {
-  return rad * (180 / Math.PI);
-}
-
-export function initTransform() {
-  return {
-    translation: [0, 0, 0],
-    rotation: [0, 0, 0],
-    scale: [1, 1, 1],
-  };
-}

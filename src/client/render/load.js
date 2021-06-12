@@ -20,24 +20,6 @@ export async function loadObj(gl, modelName) {
   const res = await fetch(`/model/${modelName}.obj`);
   const text = await res.text();
   return new Promise(async (resolve) => {
-    // const bufferData = createBufferFromOBJ(gl, {
-    //   //prettier-ignore
-    //   vertices: [
-    //     0.0,  1.0,  0.0,
-    //     1.0,  0.0,  0.0,
-    //    -1.0,  0.0,  0.0,
-    //     0.0, -1.0,  0.0
-    //   ],
-    //   geometories: [
-    //     {
-    //       indices: [
-    //         0, 1, 2,
-    //         1, 2, 3,
-    //       ],
-    //     }
-    //   ],
-    //   //prettier-ignore
-    // });
     const obj = await parseObj(text);
     const bufferData = createBufferFromOBJ(gl, obj);
     resolve(bufferData);
@@ -65,6 +47,15 @@ export async function parseObj(text) {
     geometory.normals.push(...faceNormals[index]);
   }
 
+  function addGeometory(material) {
+    geometory = {
+      material,
+      vertices: [],
+      normals: [],
+    };
+    geometories.push(geometory);
+  }
+
   const handlers = {
     v(args) {
       vertPositions.push(args.map(parseFloat));
@@ -76,19 +67,29 @@ export async function parseObj(text) {
       faceNormals.push(args.map(parseFloat));
     },
     f(args) {
+      if (geometory === undefined) {
+        addGeometory();
+      }
       for (let i = 0; i < args.length - 2; i++) {
         addVertex(args[0]);
         addVertex(args[i + 1]);
         addVertex(args[i + 2]);
       }
     },
+    l(args) {
+      if (geometory === undefined) {
+        addGeometory();
+      }
+      if (args[0]) {
+        geometory.vertices.push(...vertPositions[parseInt(args[0]) - 1]);
+      }
+
+      if (args[1]) {
+        geometory.vertices.push(...vertPositions[parseInt(args[1]) - 1]);
+      }
+    },
     usemtl(args) {
-      geometory = {
-        material: args[0],
-        vertices: [],
-        normals: [],
-      };
-      geometories.push(geometory);
+      addGeometory(args[0]);
     },
     mtllib(args) {},
   };

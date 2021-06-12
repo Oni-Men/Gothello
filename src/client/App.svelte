@@ -1,27 +1,36 @@
 <script>
   import { onMount } from "svelte";
-  import { init, renderGlobal } from "./render/render";
-  import { loadObj } from "./render/load";
+  import { loadModels, init, renderGlobal } from "./render/render";
 
   let loadingMessage = "";
   let errorMessage = "";
 
   let canvas, gl;
-  let models = {
-    disc: null,
-  };
   let width = window.innerWidth;
   let height = window.innerHeight;
 
   let mouse = {
     x: 0,
     y: 0,
+    dx: 0,
+    dy: 0,
+    wheelX: 0,
+    wheelY: 0,
     button: [false, false, false, false, false],
     get primaryDown() {
-      return !!button[0];
+      return !!this.button[0];
     },
     get secondaryDown() {
-      return !!button[2];
+      return !!this.button[2];
+    },
+    refresh() {
+      this.dx = 0;
+      this.dy = 0;
+      this.wheelX = 0;
+      this.wheelY = 0;
+      for (const i in this.button) {
+        this.button[i] = false;
+      }
     },
   };
   let keyboard = {};
@@ -31,15 +40,6 @@
     height = window.innerHeight;
   });
 
-  //TODO objを解析して表示
-  async function loadModels(gl) {
-    loadingMessage = "Loading models...";
-    for (const key of Object.keys(models)) {
-      models[key] = await loadObj(gl, key);
-    }
-    loadingMessage = "";
-  }
-
   onMount(async () => {
     gl = canvas.getContext("webgl");
     if (gl == null) {
@@ -48,7 +48,7 @@
     }
 
     const loop = () => {
-      renderGlobal(gl, models, mouse, keyboard);
+      renderGlobal(gl, mouse, keyboard);
       window.requestAnimationFrame(loop);
     };
 
@@ -57,7 +57,9 @@
       return;
     }
 
+    loadingMessage = "Loading models...";
     await loadModels(gl);
+    loadingMessage = "";
 
     loop();
   });
@@ -66,6 +68,8 @@
     const r = e.target.getBoundingClientRect();
     mouse.x = e.clientX - r.left;
     mouse.y = e.clientY - r.top;
+    mouse.dx = e.movementX;
+    mouse.dy = e.movementY;
   }
 
   function handleMouseDown(e) {
@@ -74,6 +78,15 @@
 
   function handleMouseUp(e) {
     mouse.button[e.button] = false;
+  }
+
+  function handleMouseLeave(e) {
+    mouse.refresh();
+  }
+
+  function handleMouseWheel(e) {
+    mouse.wheelX = e.deltaX;
+    mouse.wheelY = e.deltaY;
   }
 
   function handleKeyDown(e) {
@@ -91,6 +104,8 @@
     on:mousemove={handleMouseMove}
     on:mousedown={handleMouseDown}
     on:mouseup={handleMouseUp}
+    on:mouseleave={handleMouseLeave}
+    on:mousewheel={handleMouseWheel}
     {width}
     {height}
   />
@@ -127,6 +142,6 @@
   }
 
   .load {
-    color: green;
+    color: black;
   }
 </style>

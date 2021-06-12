@@ -12,7 +12,7 @@ varying vec4 v_color;
 
 void main() {
   vec3 invLight = normalize(invMatrix * vec4(u_lightDirection, 0.0)).xyz;
-  float light = clamp(dot(a_normal, invLight), 0.1, 1.0);
+  float light = clamp(dot(a_normal, invLight), 0.4, 1.0);
   v_color =  vec4(u_diffuse.rgb * light, u_diffuse.a);
   gl_Position = mvpMatrix * position;
 }`;

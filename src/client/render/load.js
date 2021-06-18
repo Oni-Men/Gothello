@@ -2,6 +2,7 @@ import { createVBO } from "./gl";
 
 function createBufferFromOBJ(gl, obj) {
   const bufferInfo = [];
+
   for (let i = 0; i < obj.geometories.length; i++) {
     const geometory = obj.geometories[i];
     const vertices = createVBO(gl, geometory.vertices);
@@ -10,7 +11,7 @@ function createBufferFromOBJ(gl, obj) {
       material: geometory.material,
       vertices,
       normals,
-      length: geometory.vertices.length,
+      length: geometory.vertices.length / 3,
     });
   }
   return bufferInfo;

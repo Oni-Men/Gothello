@@ -17,19 +17,19 @@ const (
 
 //Context 通信するデータ
 type Context struct {
-	Type        ContextType
-	BlackPlayer Player
-	WhitePlayer Player
-	TurnColor   Disc
-	DiscColor   string
-	DiscX       int
-	DiscY       int
-	Board       [8][8]Disc //ボードの状態を配信するため
-	Nickname    string
-	GameID      int //観戦するときに利用する
-	Result      GameResult
-	Token       string
-	PlayerID    int
+	Type        ContextType `json:"type"`
+	BlackPlayer Player      `json:"blackPlayer"`
+	WhitePlayer Player      `json:"whitePlayer"`
+	TurnColor   Disc        `json:"turnColor"`
+	DiscColor   string      `json:"discColor"`
+	DiscX       int         `json:"discX"`
+	DiscY       int         `json:"discY"`
+	Board       [8][8]Disc  `json:"board"` //ボードの状態を配信するため
+	Nickname    *string     `json:"nickName"`
+	GameID      int         `json:"gameId"` //観戦するときに利用する
+	Result      GameResult  `json:"result"`
+	Token       string      `json:"token"`
+	PlayerID    int         `json:"playerId"`
 }
 
 //GameResult ゲームの結果を表します

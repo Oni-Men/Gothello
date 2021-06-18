@@ -1,39 +1,27 @@
 import App from "./App.svelte";
-import * as Define from "./define.js";
-import { Player } from "./game/player";
-
-var self = null;
-var opponent = null;
-var board = null;
-
-// const ws = new WebSocket(`ws://${window.location.host}/game`);
-// const ws = new WebSocket(`ws://localhost/game`);
-// ws.onmessage = function (e) {
-// 	const data = JSON.parse(e.data);
-
-// 	switch (data.Type) {
-// 		case Define.GAME_INFO:
-// 			opponent = new Player(data.OpponentName, OpponentColor);
-// 			self.color = data.MyColor;
-// 			game_state = GAME_STATE_PLAYING;
-// 			break;
-// 		case Define.TURN_UPDATE:
-// 			my_turn = data.TurnColor == my_color;
-// 			break;
-// 		case Define.BOARD_UPDATE:
-// 			board.update(data);
-// 			break;
-// 		case GAME_OVER:
-// 			result = data.Result;
-// 			game_state = GAME_STATE_GAME_OVER;
-// 	}
-// 	updateGameInfo();
-// };
+import { SCENE_MENU, SCENE_PLAYING } from "./define";
+import * as Net from "./netHandle";
 
 const app = new App({
   target: document.body,
-  props: {},
+  props: {
+    game: null,
+    scene: SCENE_PLAYING,
+    token: "",
+  },
 });
+
+// const ws = new WebSocket(`ws://${window.location.host}/game`);
+const ws = new WebSocket(`ws://localhost/game`);
+ws.onmessage = function (e) {
+  const data = JSON.parse(e.data);
+  const handler = Net.Handlers[data.type];
+  if (handler) {
+    //handler(data);
+  } else {
+    console.log(`Handler for ${data.type} not found`);
+  }
+};
 
 export function sendJson(data) {
   try {
@@ -42,5 +30,22 @@ export function sendJson(data) {
     resetGameState();
   }
 }
+
+/**
+ * https://webglfundamentals.org/webgl/lessons/webgl-tips.html
+ */
+export const downloadBlob = (() => {
+  const a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style.display = "none";
+
+  return (blob, fileName) => {
+    const url = window.URL.createObjectURL(blob);
+    a.href = url;
+    a.download = fileName;
+    a.click();
+    a.remove();
+  };
+})();
 
 export default app;

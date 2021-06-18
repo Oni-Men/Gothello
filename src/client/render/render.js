@@ -1,17 +1,21 @@
-import { createShader, createProgram } from "./gl";
+import { createShader, createProgram, createVBO, createProgramFromShaders } from "./gl";
 import { clamp, toRadian } from "./math";
 import { loadObj } from "./load";
 import VertexShaderSource from "./shader/vertex";
 import FragmentShaderSource from "./shader/fragment";
 import { mat4 } from "gl-matrix";
+import { downloadBlob } from "../main";
+import { Picker } from "./picker";
 
 export const models = {
   disc: null,
   board: null,
 };
-export let program = null;
-export const attrs = {};
-export const unifms = {};
+
+let picker = null;
+let program = null;
+const attrs = {};
+const unifms = {};
 
 const orbit = {
   rotation: [toRadian(90), 0],
@@ -29,6 +33,12 @@ const camera = {
   scale: [1, 1, 1],
 };
 
+const cursor = {
+  vbo: null,
+  x: 0,
+  y: 0,
+};
+
 export async function loadModels(gl) {
   for (const key of Object.keys(models)) {
     models[key] = await loadObj(gl, key);
@@ -41,19 +51,8 @@ export async function loadModels(gl) {
  * @returns
  */
 export function init(gl) {
-  let error = null;
-  let vertexShader, fragmentShader;
-  [vertexShader, error] = createShader(gl, gl.VERTEX_SHADER, VertexShaderSource);
-  if (error != null) {
-    return error;
-  }
-
-  [fragmentShader, error] = createShader(gl, gl.FRAGMENT_SHADER, FragmentShaderSource);
-  if (error != null) {
-    return error;
-  }
-
-  [program, error] = createProgram(gl, vertexShader, fragmentShader);
+  let error;
+  [program, error] = createProgramFromShaders(gl, VertexShaderSource, FragmentShaderSource);
 
   if (error != null) {
     return error;
@@ -66,29 +65,22 @@ export function init(gl) {
   unifms.mvpMatrix = gl.getUniformLocation(program, "mvpMatrix");
   unifms.invMatrix = gl.getUniformLocation(program, "invMatrix");
 
+  cursor.vbo = createVBO(gl, [0, 0, 0]);
+
+  picker = new Picker(gl);
+
   orbit.applyToCamera(camera);
 }
 
-export function renderGlobal(gl, mouse, keyboard) {
-  if (mouse.secondaryDown) {
-    gl.canvas.requestPointerLock();
-    orbit.rotation[0] += toRadian(mouse.dy);
-    orbit.rotation[0] = clamp(orbit.rotation[0], toRadian(0), toRadian(90));
-    orbit.rotation[1] += toRadian(mouse.dx);
-    orbit.applyToCamera(camera);
-  } else {
-    document.exitPointerLock();
-  }
+export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
+  const board = state.game == null ? null : state.game.board;
 
-  if (mouse.wheelY != 0) {
-    if (mouse.wheelY < 0) {
-      orbit.radius *= 0.8;
-    }
-    if (mouse.wheelY > 0) {
-      orbit.radius *= 1.2;
-    }
-    orbit.applyToCamera(camera);
-    mouse.refresh();
+  const { screenshot, leftClick } = processEvents(gl, mouseEvents, keyboardEvents);
+
+  //TODO if scene was not SCENE_PLAYING, play animation that rotate around board.
+
+  if (resizeToClientSize(gl.canvas)) {
+    picker.setFrameBufferAttachmentSize(gl, gl.canvas.width, gl.canvas.height);
   }
 
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
@@ -96,6 +88,8 @@ export function renderGlobal(gl, mouse, keyboard) {
   gl.enable(gl.CULL_FACE);
   gl.enable(gl.DEPTH_TEST);
   gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+  gl.useProgram(program);
 
   const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
 
@@ -107,17 +101,83 @@ export function renderGlobal(gl, mouse, keyboard) {
   mat4.perspective(pMatrix, toRadian(60), aspect, 0.01, 100.0);
   mat4.mul(pvMatrix, pMatrix, vMatrix);
 
-  gl.useProgram(program);
   gl.uniform3fv(unifms.lightDirection, [0.2, 1, -0.2]);
 
   renderBoard(gl, pvMatrix);
 
-  renderDiscAt(gl, pvMatrix, 3, 4);
-  renderDiscAt(gl, pvMatrix, 4, 3);
-  renderDiscAt(gl, pvMatrix, 3, 3, true);
-  renderDiscAt(gl, pvMatrix, 4, 4, true);
+  if (board != null) {
+    for (let y = 0; y < 8; y++) {
+      for (let x = 0; x < 8; x++) {
+        if (board[y][x] === 0) continue;
+        renderDiscAt(gl, pvMatrix, x, y, board[y][x] == 2);
+      }
+    }
+  }
+
+  renderCursor(gl, pvMatrix);
+  if (leftClick != null) {
+    const pos = picker.getPointedCell(gl, leftClick, pvMatrix);
+
+    if (pos != null) {
+      cursor.x = pos.x;
+      cursor.y = pos.y;
+      console.log(cursor);
+    }
+  }
+
+  // picker.renderPickerObjects(gl, pvMatrix);
 
   gl.flush();
+
+  if (screenshot) {
+    gl.canvas.toBlob((blob) => {
+      downloadBlob(blob, `gothello-${gl.canvas.width}x${gl.canvas.height}-${Date.now()}.png`);
+    });
+  }
+}
+
+function processEvents(gl, mouseEvents, keyboardEvents) {
+  let leftClick = null;
+  let mouse;
+  while ((mouse = mouseEvents.pop()) !== undefined) {
+    if (mouse.button == 0 && mouse.type === "mousedown") {
+      const rect = mouse.target.getBoundingClientRect();
+      leftClick = {
+        x: mouse.x - rect.left,
+        y: mouse.y - rect.top,
+      };
+    }
+
+    if (mouse.buttons == 2) {
+      gl.canvas.requestPointerLock();
+      orbit.rotation[0] += toRadian(mouse.movementY / 10);
+      orbit.rotation[0] = clamp(orbit.rotation[0], toRadian(0), toRadian(90));
+      orbit.rotation[1] += toRadian(mouse.movementX / 10);
+      orbit.applyToCamera(camera);
+    } else {
+      document.exitPointerLock();
+    }
+
+    if (mouse.deltaY != 0) {
+      if (mouse.deltaY < 0) {
+        orbit.radius *= 0.8;
+      }
+      if (mouse.deltaY > 0) {
+        orbit.radius *= 1.2;
+      }
+      orbit.applyToCamera(camera);
+    }
+  }
+
+  let screenshot = false;
+
+  let keyboard;
+  while ((keyboard = keyboardEvents.pop()) !== undefined) {
+    if (keyboard.key == "F2" && !keyboard.repeat) {
+      screenshot = true;
+    }
+  }
+  return { screenshot, leftClick };
 }
 
 function renderDiscAt(gl, pvMatrix, x, y, flip) {
@@ -167,6 +227,8 @@ function renderBoard(gl, pvMatrix) {
   const mvpMatrix = mat4.create();
   const invMatrix = mat4.create();
 
+  mat4.translate(mMatrix, mMatrix, [0, -0.05, 0]);
+
   mat4.mul(mvpMatrix, pvMatrix, mMatrix);
   mat4.invert(invMatrix, mMatrix);
 
@@ -181,4 +243,31 @@ function renderBoard(gl, pvMatrix) {
 
     gl.drawArrays(gl.LINES, 0, geometory.length);
   }
+}
+
+function renderCursor(gl, pvMatrix) {
+  const mvpMatrix = mat4.create();
+  const mMatrix = mat4.create();
+  mat4.translate(mMatrix, mMatrix, [cursor.x - 3.5, 0, cursor.y - 3.5]);
+  // mat4.translate(mMatrix, mMatrix, [-cursor.x + 3.5, 0, cursor.y - 3.5]);
+  mat4.mul(mvpMatrix, pvMatrix, mMatrix);
+
+  gl.uniform4fv(unifms.diffuse, [0.3, 0.3, 1, 1]);
+  gl.uniformMatrix4fv(unifms.mvpMatrix, false, mvpMatrix);
+
+  gl.bindBuffer(gl.ARRAY_BUFFER, cursor.vbo);
+
+  gl.enableVertexAttribArray(attrs.position);
+  gl.vertexAttribPointer(attrs.position, 3, gl.FLOAT, false, 0, 0);
+
+  gl.drawArrays(gl.POINTS, 0, 1);
+}
+
+function resizeToClientSize(canvas) {
+  if (canvas.width != canvas.clientWidth || canvas.height != canvas.clientHeight) {
+    canvas.width = canvas.clientWidth;
+    canvas.height = canvas.clientHeight;
+    return true;
+  }
+  return false;
 }

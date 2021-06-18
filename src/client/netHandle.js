@@ -1,3 +1,7 @@
+import { SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
+import app, { sendJson } from "./main";
+import { Game } from "./game/game";
+
 export const FIND_OPPONENT = 0;
 export const GAME_INFO = 1;
 export const TURN_UPDATE = 2;
@@ -7,28 +11,59 @@ export const CLICK_BOARD = 5;
 export const SPECTATE = 6;
 export const AUTHENTICATION = 7;
 
+export const Handlers = [
+  handleFindOpponent,
+  handleGameInfo,
+  handleTurnUpdate,
+  handleBoardUpdate,
+  handleGameOver,
+  handleClickBoard,
+  handleSpectate,
+  handleAuthentication,
+];
+
 export function startFindingOpponent() {
-	handleFindOpponent(nickname);
+  let nickname = localStorage.getItem("nickname");
+
+  if (!nickname) {
+    nickname = window.prompt("ニックネームを決めてください");
+    localStorage.setItem("nickname", nickname);
+  }
+
+  app.scene = SCENE_MATCHING;
+  handleFindOpponent(nickname);
 }
 
 export function stopFindingOpponent() {
-	handleFindOpponent("");
+  app.scene = SCENE_MENU;
+  handleFindOpponent(null);
 }
 
 function handleFindOpponent(nickname) {
-	game_state = GAME_STATE_FINDING_OPPONENT;
-	sendJSON({
-		Type: FIND_OPPONENT,
-		Nickname: nickname,
-	});
+  sendJson({
+    type: FIND_OPPONENT,
+    nickname,
+  });
 }
 
-export function handleOpponentFound(ctx) {}
+export function handleGameInfo(ctx) {
+  app.scene = SCENE_PLAYING;
+  app.game = new Game(ctx);
+}
 
 export function handleTurnUpdate(ctx) {}
 
 export function handleBoardUpdate(ctx) {
-	board = ctx.Board;
+  app.board = ctx.board;
 }
 
 export function handleGameOver(ctx) {}
+
+export function handleClickBoard(ctx) {}
+
+export function handleSpectate(ctx) {}
+
+export function handleAuthentication(ctx) {
+  app.token = ctx.token;
+  app.id = ctx.gameId;
+}

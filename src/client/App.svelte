@@ -1,46 +1,31 @@
+<svelte:options accessors={true} />
+
 <script>
   import { onMount } from "svelte";
+  import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
+  import { startFindingOpponent, stopFindingOpponent } from "./netHandle";
   import { loadModels, init, renderGlobal } from "./render/render";
 
+  export let game;
+  export let scene;
+  export let token;
+
+  let progressText = "---";
   let loadingMessage = "";
   let errorMessage = "";
 
   let canvas, gl;
-  let width = window.innerWidth;
-  let height = window.innerHeight;
 
-  let mouse = {
-    x: 0,
-    y: 0,
-    dx: 0,
-    dy: 0,
-    wheelX: 0,
-    wheelY: 0,
-    button: [false, false, false, false, false],
-    get primaryDown() {
-      return !!this.button[0];
-    },
-    get secondaryDown() {
-      return !!this.button[2];
-    },
-    refresh() {
-      this.dx = 0;
-      this.dy = 0;
-      this.wheelX = 0;
-      this.wheelY = 0;
-      for (const i in this.button) {
-        this.button[i] = false;
-      }
-    },
-  };
-  let keyboard = {};
-
-  window.addEventListener("resize", () => {
-    width = window.innerWidth;
-    height = window.innerHeight;
-  });
+  const mouseEvents = [];
+  const keyboardEvents = [];
 
   onMount(async () => {
+    setInterval(() => {
+      const arr = "---".split("");
+      arr[parseInt((Date.now() / 500) % arr.length)] = "+";
+      progressText = arr.join(" ");
+    }, 500);
+
     gl = canvas.getContext("webgl");
     if (gl == null) {
       errorMessage = "WebGL is not supported on your browser.";
@@ -48,8 +33,8 @@
     }
 
     const loop = () => {
-      renderGlobal(gl, mouse, keyboard);
       window.requestAnimationFrame(loop);
+      renderGlobal(gl, mouseEvents, keyboardEvents, { game, scene, token });
     };
 
     errorMessage = init(gl);
@@ -64,60 +49,51 @@
     loop();
   });
 
-  function handleMouseMove(e) {
-    const r = e.target.getBoundingClientRect();
-    mouse.x = e.clientX - r.left;
-    mouse.y = e.clientY - r.top;
-    mouse.dx = e.movementX;
-    mouse.dy = e.movementY;
+  function handleMouseEvent(e) {
+    mouseEvents.push(e);
   }
 
-  function handleMouseDown(e) {
-    mouse.button[e.button] = true;
-  }
-
-  function handleMouseUp(e) {
-    mouse.button[e.button] = false;
-  }
-
-  function handleMouseLeave(e) {
-    mouse.refresh();
-  }
-
-  function handleMouseWheel(e) {
-    mouse.wheelX = e.deltaX;
-    mouse.wheelY = e.deltaY;
-  }
-
-  function handleKeyDown(e) {
-    keyboard[e.key] = true;
-  }
-
-  function handleKeyUp(e) {
-    keyboard[e.key] = false;
+  function handleKeyboard(e) {
+    keyboardEvents.push(e);
   }
 </script>
 
-<main on:keypress={handleKeyDown} on:keyup={handleKeyUp}>
-  <canvas
-    bind:this={canvas}
-    on:mousemove={handleMouseMove}
-    on:mousedown={handleMouseDown}
-    on:mouseup={handleMouseUp}
-    on:mouseleave={handleMouseLeave}
-    on:mousewheel={handleMouseWheel}
-    {width}
-    {height}
-  />
-  {#if errorMessage}
-    <div class="box error">
-      <p class="msg">{errorMessage}</p>
-    </div>
-  {:else if loadingMessage}
-    <div class="box load">
-      <p class="msg">{loadingMessage}</p>
-    </div>
-  {/if}
+<svelte:window on:keydown={handleKeyboard} />
+
+<main>
+  <div class="box error no-select">
+    <canvas
+      class="view"
+      bind:this={canvas}
+      on:mousemove={handleMouseEvent}
+      on:mousedown={handleMouseEvent}
+      on:mouseup={handleMouseEvent}
+      on:mouseleave={handleMouseEvent}
+      on:wheel={handleMouseEvent}
+      on:keydown={handleKeyboard}
+      on:keyup={handleKeyboard}
+    />
+    {#if errorMessage}
+      <p class="no-pointer-event error msg">{errorMessage}</p>
+    {:else if loadingMessage}
+      <p class="no-pointer-event load msg">{loadingMessage}</p>
+    {/if}
+    {#if scene != SCENE_PLAYING}
+      <div class="bg box ui">
+        {#if scene == SCENE_MENU}
+          <p class="clickable" on:click={startFindingOpponent}>CLICK HERE TO START MATCHING</p>
+        {:else if scene == SCENE_MATCHING}
+          <div class="clickable" on:click={stopFindingOpponent}>
+            <p>{progressText}</p>
+            <span>Click here again. then back to menu</span>
+          </div>
+        {:else if scene == SCENE_ENDING}
+          <!-- TODO  -->
+          <p>YOU WIN!</p>
+        {/if}
+      </div>
+    {/if}
+  </div>
 </main>
 
 <style>
@@ -133,8 +109,14 @@
     width: 100vw;
     height: 100vh;
     display: flex;
+    flex-direction: column;
     justify-content: center;
     align-items: center;
+  }
+
+  .view {
+    width: 100%;
+    height: 100%;
   }
 
   .error {
@@ -143,5 +125,18 @@
 
   .load {
     color: black;
+  }
+
+  .bg {
+    background: linear-gradient(#0779e466, #ffc47866);
+    color: white;
+  }
+
+  .ui p {
+    font-size: 2em;
+    margin: 0;
+  }
+  .ui span {
+    font-size: 1.4em;
   }
 </style>

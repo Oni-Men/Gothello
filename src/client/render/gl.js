@@ -45,6 +45,22 @@ export function createProgram(gl, vertexShader, fragmentShader) {
   return [null, error];
 }
 
+export function createProgramFromShaders(gl, vertexShaderSource, fragmentShaderSource) {
+  let error = null;
+  let vertexShader, fragmentShader;
+  [vertexShader, error] = createShader(gl, gl.VERTEX_SHADER, vertexShaderSource);
+  if (error != null) {
+    return [null, error];
+  }
+
+  [fragmentShader, error] = createShader(gl, gl.FRAGMENT_SHADER, fragmentShaderSource);
+  if (error != null) {
+    return [null, error];
+  }
+
+  return createProgram(gl, vertexShader, fragmentShader);
+}
+
 /**
  * VBOを作成する。バインドは解除される
  * @param {*} gl

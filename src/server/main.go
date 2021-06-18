@@ -13,10 +13,15 @@ import (
 
 var (
 	clients  = make(map[*websocket.Conn]bool)
-	upgrader = websocket.Upgrader{}
-	tokens   = make(map[*game.Player]string)
-	q        = game.NewQueue()
-	manager  = game.NewManager()
+	upgrader = websocket.Upgrader{
+		//TODO Delete this after finish front-end
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	tokens  = make(map[*game.Player]string)
+	q       = game.NewQueue()
+	manager = game.NewManager()
 )
 
 func main() {
@@ -52,21 +57,19 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 				} else {
 					q.Remove(p)
 				}
+				log.Printf("%s disconnected", p.Name)
+			} else {
+				log.Printf("error at reading json: %s", err)
 			}
-			log.Printf("err has occured in read json: %s", err)
 			delete(clients, ws)
 			break
 		}
 
 		//TODO validate token
-		if ctx.Token == "" && ctx.Type != game.FindOpponent {
-			log.Printf("invalid token received")
-			continue
-		}
-
-		if p != nil && tokens[p] != ctx.Token {
-			log.Printf("invalid token received")
-			continue
+		if ctx.Type != game.FindOpponent {
+			if ctx.Token == "" || (p != nil && tokens[p] != ctx.Token) {
+				log.Printf("invalid token received")
+			}
 		}
 
 		switch ctx.Type {
@@ -88,29 +91,35 @@ func matching() {
 			a, b := q.Pop(), q.Pop()
 			a.Color, b.Color = game.DiscWhite, game.DiscBlack
 
+			g := game.New(a, b, manager)
+			manager.Add(g)
+
+			a.GameID = g.ID()
+			b.GameID = g.ID()
+
 			ctx := &game.Context{
 				Type:        game.GameInfo,
-				BlackPlayer: *a,
-				WhitePlayer: *b,
+				BlackPlayer: *g.BlackPlayer,
+				WhitePlayer: *g.WhitePlayer,
+				GameID:      g.ID(),
+				TurnColor:   g.TurnColor,
+				Board:       g.Board,
 			}
 
 			a.Send(ctx)
 			b.Send(ctx)
-
-			game := game.New(a, b, manager)
-			manager.Add(game)
-			a.GameID = game.ID()
-			b.GameID = game.ID()
 		}
 	}
 }
 
 func handleFindOpponent(ctx *game.Context, p *game.Player, ws *websocket.Conn) *game.Player {
-	if ctx.Nickname == "" && p != nil {
+	if ctx.Nickname == nil && p != nil {
 		q.Remove(p)
+		log.Printf("%s quit the queue", p.Name)
 	} else {
-		p = game.NewPlayer(ctx.Nickname, ws)
+		p = game.NewPlayer(*ctx.Nickname, ws)
 		q.Push(p)
+		log.Printf("%s join the queue", p.Name)
 
 		token := generator.Token(16)
 		tokens[p] = token

@@ -32,7 +32,7 @@ func New(p1, p2 *Player, manager *Manager) *Game {
 	g.Board[4][3] = DiscBlack
 	g.Board[4][4] = DiscWhite
 
-	g.updateTurn()
+	g.TurnColor = DiscBlack
 
 	return g
 }
@@ -85,6 +85,7 @@ func (g *Game) updateTurn() {
 
 	if g.pass > 2 {
 		g.noticeGameOver(nil)
+		return
 	}
 
 	switch g.TurnColor {
@@ -119,7 +120,7 @@ func (g *Game) noticeBoardUpdate() {
 
 	g.noticeAll(&Context{
 		Type:  BoardUpdate,
-		Board: g.Board,
+		Board: &g.Board,
 	})
 }
 
@@ -150,7 +151,7 @@ func (g *Game) noticeGameOver(winner *Player) {
 
 	g.noticeAll(&Context{
 		Type: GameOver,
-		Result: GameResult{
+		Result: &GameResult{
 			ID:     g.id,
 			Black:  black,
 			White:  white,
@@ -261,15 +262,15 @@ func (g *Game) noticeAll(ctx *Context) {
 	}
 }
 
-//todo
 func (g *Game) GameOverByExit(player *Player) {
 	if player == nil {
 		return
 	}
-	for _, p := range g.Spectators {
-		if p.ID != player.ID {
-			g.noticeGameOver(p)
-			break
-		}
+
+	switch player {
+	case g.BlackPlayer:
+		g.noticeGameOver(g.WhitePlayer)
+	case g.WhitePlayer:
+		g.noticeGameOver(g.BlackPlayer)
 	}
 }

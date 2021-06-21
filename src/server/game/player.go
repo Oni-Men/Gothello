@@ -8,12 +8,12 @@ import (
 
 //Player オセロのプレイヤーを管理します
 type Player struct {
-	ID     int
-	GameID int
-	Conn   *websocket.Conn
-	Name   string
-	Color  Disc
-	Turn   bool
+	ID     int             `json:"id"`
+	GameID int             `json:"gameId"`
+	Conn   *websocket.Conn `json:"-"`
+	Name   string          `json:"name"`
+	Color  Disc            `json:"color"`
+	Turn   bool            `json:"turn"`
 }
 
 func NewPlayer(name string, ws *websocket.Conn) *Player {

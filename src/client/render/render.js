@@ -1,4 +1,4 @@
-import { createShader, createProgram, createVBO, createProgramFromShaders } from "./gl";
+import { createVBO, createProgramFromShaders } from "./gl";
 import { clamp, toRadian } from "./math";
 import { loadObj } from "./load";
 import VertexShaderSource from "./shader/vertex";
@@ -6,6 +6,8 @@ import FragmentShaderSource from "./shader/fragment";
 import { mat4 } from "gl-matrix";
 import { downloadBlob } from "../main";
 import { Picker } from "./picker";
+import { handleClickBoard } from "../netHandle";
+import { SCENE_PLAYING } from "../define";
 
 export const models = {
   disc: null,
@@ -17,13 +19,17 @@ let program = null;
 const attrs = {};
 const unifms = {};
 
-const orbit = {
+export const orbit = {
   rotation: [toRadian(90), 0],
   radius: 10,
   applyToCamera(camera) {
     camera.translate[0] = this.radius * Math.cos(this.rotation[1]);
     camera.translate[1] = this.radius * Math.sin(this.rotation[0]);
     camera.translate[2] = this.radius * Math.sin(this.rotation[1]);
+  },
+  reset() {
+    this.rotation = [toRadian(90), 0];
+    this.radius = 10;
   },
 };
 
@@ -77,7 +83,10 @@ export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
 
   const { screenshot, leftClick } = processEvents(gl, mouseEvents, keyboardEvents);
 
-  //TODO if scene was not SCENE_PLAYING, play animation that rotate around board.
+  if (state.scene != SCENE_PLAYING) {
+    orbit.rotation[1] += 0.005;
+    orbit.applyToCamera(camera);
+  }
 
   if (resizeToClientSize(gl.canvas)) {
     picker.setFrameBufferAttachmentSize(gl, gl.canvas.width, gl.canvas.height);
@@ -114,18 +123,16 @@ export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
     }
   }
 
-  renderCursor(gl, pvMatrix);
+  //renderCursor(gl, pvMatrix);
   if (leftClick != null) {
     const pos = picker.getPointedCell(gl, leftClick, pvMatrix);
 
     if (pos != null) {
       cursor.x = pos.x;
       cursor.y = pos.y;
-      console.log(cursor);
+      handleClickBoard(cursor.x, cursor.y);
     }
   }
-
-  // picker.renderPickerObjects(gl, pvMatrix);
 
   gl.flush();
 
@@ -165,6 +172,7 @@ function processEvents(gl, mouseEvents, keyboardEvents) {
       if (mouse.deltaY > 0) {
         orbit.radius *= 1.2;
       }
+      orbit.radius = clamp(orbit.radius, 0.1, 10.0);
       orbit.applyToCamera(camera);
     }
   }
@@ -249,7 +257,6 @@ function renderCursor(gl, pvMatrix) {
   const mvpMatrix = mat4.create();
   const mMatrix = mat4.create();
   mat4.translate(mMatrix, mMatrix, [cursor.x - 3.5, 0, cursor.y - 3.5]);
-  // mat4.translate(mMatrix, mMatrix, [-cursor.x + 3.5, 0, cursor.y - 3.5]);
   mat4.mul(mvpMatrix, pvMatrix, mMatrix);
 
   gl.uniform4fv(unifms.diffuse, [0.3, 0.3, 1, 1]);

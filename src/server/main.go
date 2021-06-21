@@ -58,6 +58,7 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 					q.Remove(p)
 				}
 				log.Printf("%s disconnected", p.Name)
+				log.Printf("%s", err)
 			} else {
 				log.Printf("error at reading json: %s", err)
 			}
@@ -65,7 +66,6 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 
-		//TODO validate token
 		if ctx.Type != game.FindOpponent {
 			if ctx.Token == "" || (p != nil && tokens[p] != ctx.Token) {
 				log.Printf("invalid token received")
@@ -89,7 +89,7 @@ func matching() {
 		time.Sleep(1 * time.Second)
 		for q.Length() >= 2 {
 			a, b := q.Pop(), q.Pop()
-			a.Color, b.Color = game.DiscWhite, game.DiscBlack
+			a.Color, b.Color = game.DiscBlack, game.DiscWhite
 
 			g := game.New(a, b, manager)
 			manager.Add(g)
@@ -99,11 +99,11 @@ func matching() {
 
 			ctx := &game.Context{
 				Type:        game.GameInfo,
-				BlackPlayer: *g.BlackPlayer,
-				WhitePlayer: *g.WhitePlayer,
+				BlackPlayer: g.BlackPlayer,
+				WhitePlayer: g.WhitePlayer,
 				GameID:      g.ID(),
 				TurnColor:   g.TurnColor,
-				Board:       g.Board,
+				Board:       &g.Board,
 			}
 
 			a.Send(ctx)

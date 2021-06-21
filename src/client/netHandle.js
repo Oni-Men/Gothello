@@ -1,6 +1,7 @@
-import { SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
+import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
 import app, { sendJson } from "./main";
 import { Game } from "./game/game";
+import { orbit } from "./render/render";
 
 export const FIND_OPPONENT = 0;
 export const GAME_INFO = 1;
@@ -22,6 +23,9 @@ export const Handlers = [
   handleAuthentication,
 ];
 
+let playerId = 0;
+let playerInfo = null;
+
 export function startFindingOpponent() {
   let nickname = localStorage.getItem("nickname");
 
@@ -42,28 +46,62 @@ export function stopFindingOpponent() {
 function handleFindOpponent(nickname) {
   sendJson({
     type: FIND_OPPONENT,
-    nickname,
+    nickname: nickname,
   });
 }
 
 export function handleGameInfo(ctx) {
   app.scene = SCENE_PLAYING;
   app.game = new Game(ctx);
+  if (ctx.blackPlayer.id == playerId) {
+    playerInfo = ctx.blackPlayer;
+    app.turn = ctx.turnColor == playerInfo.color;
+  } else if (ctx.whitePlayer.id == playerId) {
+    playerInfo = ctx.whitePlayer;
+    app.turn = ctx.turnColor == playerInfo.color;
+  }
+
+  orbit.reset();
+  //playerInfo is null means spectating mode.
 }
 
-export function handleTurnUpdate(ctx) {}
+export function handleTurnUpdate(ctx) {
+  if (playerInfo == null) {
+    return;
+  }
+  app.turn = ctx.turnColor == playerInfo.color;
+}
 
 export function handleBoardUpdate(ctx) {
-  app.board = ctx.board;
+  if (app.game != null) {
+    app.game.board = ctx.board;
+  }
 }
 
-export function handleGameOver(ctx) {}
+export function handleGameOver(ctx) {
+  app.scene = SCENE_ENDING;
+  app.result = ctx.result;
+}
 
-export function handleClickBoard(ctx) {}
+export function handleClickBoard(x, y) {
+  if (x < 0 || x >= 8) {
+    return;
+  }
 
+  if (y < 0 || y >= 8) {
+    return;
+  }
+  sendJson({
+    type: CLICK_BOARD,
+    discX: x,
+    discY: y,
+  });
+}
+
+//TODO
 export function handleSpectate(ctx) {}
 
 export function handleAuthentication(ctx) {
   app.token = ctx.token;
-  app.id = ctx.gameId;
+  playerId = ctx.playerId;
 }

@@ -3,12 +3,15 @@
 <script>
   import { onMount } from "svelte";
   import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
+  import { resetGameState } from "./main";
   import { startFindingOpponent, stopFindingOpponent } from "./netHandle";
   import { loadModels, init, renderGlobal } from "./render/render";
 
+  export let turn;
   export let game;
   export let scene;
   export let token;
+  export let result;
 
   let progressText = "---";
   let loadingMessage = "";
@@ -73,23 +76,30 @@
       on:keydown={handleKeyboard}
       on:keyup={handleKeyboard}
     />
-    {#if errorMessage}
-      <p class="no-pointer-event error msg">{errorMessage}</p>
-    {:else if loadingMessage}
-      <p class="no-pointer-event load msg">{loadingMessage}</p>
-    {/if}
+    <div class="no-pointer-event box flex-top">
+      {#if scene == SCENE_PLAYING && turn}
+        <p class="msg">Your turn</p>
+      {/if}
+      {#if errorMessage}
+        <p class="no-pointer-event error msg">{errorMessage}</p>
+      {:else if loadingMessage}
+        <p class="no-pointer-event load msg">{loadingMessage}</p>
+      {/if}
+    </div>
     {#if scene != SCENE_PLAYING}
-      <div class="bg box ui">
+      <div class="bg box ui flex-center msg">
         {#if scene == SCENE_MENU}
-          <p class="clickable" on:click={startFindingOpponent}>CLICK HERE TO START MATCHING</p>
+          <p class="clickable" on:click={startFindingOpponent}>Click here to find opponent</p>
         {:else if scene == SCENE_MATCHING}
           <div class="clickable" on:click={stopFindingOpponent}>
             <p>{progressText}</p>
-            <span>Click here again. then back to menu</span>
+            <span>Click here again to back to menu</span>
           </div>
-        {:else if scene == SCENE_ENDING}
-          <!-- TODO  -->
-          <p>YOU WIN!</p>
+        {:else if scene == SCENE_ENDING && result != null}
+          <div class="clickable" on:click={resetGameState}>
+            <p>{result.winner} win!</p>
+            <span>Black {result.black} - White {result.white}</span>
+          </div>
         {/if}
       </div>
     {/if}
@@ -102,6 +112,12 @@
     margin: 0 auto;
   }
 
+  .msg {
+    color: white;
+    font-size: 1.4em;
+    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
+  }
+
   .box {
     position: absolute;
     top: 0;
@@ -110,6 +126,14 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
+  }
+
+  .flex-top {
+    justify-content: start;
+    align-items: center;
+  }
+
+  .flex-center {
     justify-content: center;
     align-items: center;
   }
@@ -133,7 +157,7 @@
   }
 
   .ui p {
-    font-size: 2em;
+    font-size: 1.6em;
     margin: 0;
   }
   .ui span {

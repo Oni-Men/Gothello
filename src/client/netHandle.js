@@ -62,7 +62,7 @@ export function handleGameInfo(ctx) {
   }
 
   orbit.reset();
-  //playerInfo is null means spectating mode.
+  //If the playerInfo is null which means spectating mode.
 }
 
 export function handleTurnUpdate(ctx) {
@@ -98,8 +98,9 @@ export function handleClickBoard(x, y) {
   });
 }
 
-//TODO
-export function handleSpectate(ctx) {}
+export function handleSpectate(ctx) {
+  //TODO
+}
 
 export function handleAuthentication(ctx) {
   app.token = ctx.token;

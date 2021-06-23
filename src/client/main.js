@@ -17,7 +17,6 @@ const app = new App({
 let ws = new WebSocket(`ws://localhost/game`);
 ws.onmessage = function (e) {
   const data = JSON.parse(e.data);
-  console.log(data);
   const handler = Net.Handlers[data.type];
   if (handler) {
     handler(data);
@@ -54,7 +53,7 @@ export const downloadBlob = (() => {
     a.href = url;
     a.download = fileName;
     a.click();
-    a.remove();
+    a.remove(); //Remove the element then took screenshot.
   };
 })();
 

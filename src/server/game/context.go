@@ -25,7 +25,7 @@ type Context struct {
 	DiscY       int         `json:"discY"`
 	Board       *[8][8]Disc `json:"board,omitempty"` //ボードの状態を配信するため
 	Nickname    *string     `json:"nickname,omitempty"`
-	GameID      int         `json:"gameId"` //観戦するときに利用する
+	GameID      int         `json:"gameId"`
 	Result      *GameResult `json:"result,omitempty"`
 	Token       string      `json:"token,omitempty"`
 	PlayerID    int         `json:"playerId"`

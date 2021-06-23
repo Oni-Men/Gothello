@@ -35,3 +35,7 @@ func (p *Player) Send(ctx *Context) {
 		p.Conn.WriteJSON(ctx)
 	}
 }
+
+func (p *Player) ConnectionEquals(o *Player) bool {
+	return p.Conn == o.Conn
+}

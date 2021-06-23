@@ -15,6 +15,7 @@ type Game struct {
 	pass        int
 	canPlace    bool
 	GameOvered  bool
+	Process     []byte
 }
 
 //New 新しいゲームを作成します
@@ -25,6 +26,7 @@ func New(p1, p2 *Player, manager *Manager) *Game {
 		BlackPlayer: p1,
 		WhitePlayer: p2,
 		manager:     manager,
+		Process:     make([]byte, 0, 60),
 	}
 
 	g.Board[3][3] = DiscWhite
@@ -70,6 +72,7 @@ func (g *Game) ClickBoard(x, y int) {
 		}
 
 		if flipped {
+			g.Process = append(g.Process, byte(y*8+x))
 			g.Board[y][x] = g.TurnColor
 			g.noticeBoardUpdate()
 			g.updateTurn()

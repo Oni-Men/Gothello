@@ -85,12 +85,12 @@ export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
 
   if (state.scene != SCENE_PLAYING) {
     orbit.rotation[1] += 0.005;
-    orbit.applyToCamera(camera);
   }
 
   if (resizeToClientSize(gl.canvas)) {
     picker.setFrameBufferAttachmentSize(gl, gl.canvas.width, gl.canvas.height);
   }
+  orbit.applyToCamera(camera);
 
   gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
   gl.clearColor(0.3, 0.4, 0.3, 1.0);

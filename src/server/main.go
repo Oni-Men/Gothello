@@ -89,8 +89,14 @@ func matching() {
 		time.Sleep(1 * time.Second)
 		for q.Length() >= 2 {
 			a, b := q.Pop(), q.Pop()
-			a.Color, b.Color = game.DiscBlack, game.DiscWhite
 
+			// If connection was the same. won't start a game and put the player back in the queue.
+			if a.ConnectionEquals(b) {
+				q.Push(a)
+				continue
+			}
+
+			a.Color, b.Color = game.DiscBlack, game.DiscWhite
 			g := game.New(a, b, manager)
 			manager.Add(g)
 

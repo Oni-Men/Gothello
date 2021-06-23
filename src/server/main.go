@@ -14,10 +14,9 @@ import (
 var (
 	clients  = make(map[*websocket.Conn]bool)
 	upgrader = websocket.Upgrader{
-		//TODO Delete this after finish front-end
-		CheckOrigin: func(r *http.Request) bool {
-			return true
-		},
+		// CheckOrigin: func(r *http.Request) bool {
+		// 	return true
+		// },
 	}
 	tokens  = make(map[*game.Player]string)
 	q       = game.NewQueue()
@@ -25,7 +24,7 @@ var (
 )
 
 func main() {
-	fs := http.FileServer(http.Dir("../../public"))
+	fs := http.FileServer(http.Dir("./public"))
 
 	http.Handle("/", fs)
 	http.HandleFunc("/game", handleClients)

@@ -113,12 +113,6 @@
     margin: 0 auto;
   }
 
-  .msg {
-    color: white;
-    font-size: 1.4em;
-    text-shadow: 0 2px 2px rgba(0, 0, 0, 0.5);
-  }
-
   .view {
     width: 100%;
     height: 100%;

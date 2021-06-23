@@ -1,8 +1,10 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -24,6 +26,9 @@ var (
 )
 
 func main() {
+	port := flag.Int("port", 80, "Server port")
+	flag.Parse()
+
 	fs := http.FileServer(http.Dir("./public"))
 
 	http.Handle("/", fs)
@@ -31,7 +36,8 @@ func main() {
 
 	go matching()
 
-	log.Fatal(http.ListenAndServe(":80", nil))
+	addr := ":" + strconv.Itoa(*port)
+	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
 func handleClients(w http.ResponseWriter, r *http.Request) {

@@ -1,6 +1,5 @@
 #!/bin/sh
 
-#Build client-side
 yarn build
 
 cd ./src/server

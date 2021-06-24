@@ -1,7 +1,9 @@
 package game
 
+import "errors"
+
 type Queue struct {
-	length int
+	length uint16
 	first  *Element
 	last   *Element
 }
@@ -19,7 +21,11 @@ func NewQueue() *Queue {
 	}
 }
 
-func (q *Queue) Push(player *Player) {
+func (q *Queue) Push(player *Player) error {
+	if q.length >= 65535 {
+		return errors.New("queue is max")
+	}
+
 	e := &Element{
 		player: player,
 	}
@@ -35,6 +41,8 @@ func (q *Queue) Push(player *Player) {
 		q.last.next = e
 		q.last = e
 	}
+
+	return nil
 }
 
 func (q *Queue) Pop() *Player {
@@ -52,7 +60,7 @@ func (q *Queue) Pop() *Player {
 	return nil
 }
 
-func (q *Queue) Length() int {
+func (q *Queue) Length() uint16 {
 	return q.length
 }
 

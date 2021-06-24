@@ -1,6 +1,5 @@
 import App from "./App.svelte";
 import { SCENE_MENU } from "./define";
-import * as Net from "./netHandle";
 
 const app = new App({
   target: document.body,
@@ -10,31 +9,9 @@ const app = new App({
     scene: SCENE_MENU,
     turn: false,
     token: "",
+    errorMessage: "",
   },
 });
-
-// const ws = new WebSocket(`ws://${window.location.host}/game`);
-let ws = new WebSocket(`ws://localhost/game`);
-ws.onmessage = function (e) {
-  const data = JSON.parse(e.data);
-  const handler = Net.Handlers[data.type];
-  if (handler) {
-    handler(data);
-  } else {
-    console.log(`Handler for ${data.type} not found`);
-  }
-};
-
-ws.onclose = function (e) {
-  resetGameState();
-};
-
-export function sendJson(data) {
-  data.token = app.token;
-  setTimeout(() => {
-    ws.send(JSON.stringify(data));
-  }, 10);
-}
 
 export function resetGameState() {
   app.scene = SCENE_MENU;

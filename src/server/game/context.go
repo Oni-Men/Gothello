@@ -5,19 +5,21 @@ type ContextType int
 
 //通信の内容を表すのに使う
 const (
-	FindOpponent ContextType = iota
+	Fail ContextType = iota - 1
+	Authentication
+	FindOpponent
 	GameInfo
 	TurnUpdate
 	BoardUpdate
 	GameOver
 	ClickBoard
 	Spectate
-	Authentication
 )
 
 //Context 通信するデータ
 type Context struct {
 	Type        ContextType `json:"type"`
+	Flag        bool        `json:"flag"`
 	BlackPlayer *Player     `json:"blackPlayer,omitempty"`
 	WhitePlayer *Player     `json:"whitePlayer,omitempty"`
 	TurnColor   Disc        `json:"turnColor"`
@@ -29,6 +31,7 @@ type Context struct {
 	Result      *GameResult `json:"result,omitempty"`
 	Token       string      `json:"token,omitempty"`
 	PlayerID    int         `json:"playerId"`
+	Error       string      `json:"error"`
 }
 
 //GameResult ゲームの結果を表します

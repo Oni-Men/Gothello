@@ -17,7 +17,7 @@
   export let result;
 
   let loadingMessage = "";
-  let errorMessage = "";
+  export let errorMessage;
 
   let canvas, gl;
 

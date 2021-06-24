@@ -13,7 +13,6 @@ type Game struct {
 	TurnColor   Disc
 	Broadcast   chan Message
 	pass        int
-	canPlace    bool
 	GameOvered  bool
 	Process     []byte
 }
@@ -21,7 +20,6 @@ type Game struct {
 //New 新しいゲームを作成します
 func New(p1, p2 *Player, manager *Manager) *Game {
 	g := &Game{
-		canPlace:    true,
 		id:          generator.RandomID(),
 		BlackPlayer: p1,
 		WhitePlayer: p2,
@@ -63,12 +61,6 @@ func (g *Game) ClickBoard(x, y int) {
 				_, n := g.getFlippableDiscs(k, i)
 				c += n
 			}
-		}
-
-		if c > 0 {
-			g.canPlace = true
-		} else {
-			g.canPlace = false
 		}
 
 		if flipped {

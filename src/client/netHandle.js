@@ -1,18 +1,20 @@
 import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
-import app, { sendJson } from "./main";
+import app, { resetGameState } from "./main";
 import { Game } from "./game/game";
 import { orbit } from "./render/render";
 
-export const FIND_OPPONENT = 0;
-export const GAME_INFO = 1;
-export const TURN_UPDATE = 2;
-export const BOARD_UPDATE = 3;
-export const GAME_OVER = 4;
-export const CLICK_BOARD = 5;
-export const SPECTATE = 6;
-export const AUTHENTICATION = 7;
+export const FAIL = -1;
+export const AUTHENTICATION = 0;
+export const FIND_OPPONENT = 1;
+export const GAME_INFO = 2;
+export const TURN_UPDATE = 3;
+export const BOARD_UPDATE = 4;
+export const GAME_OVER = 5;
+export const CLICK_BOARD = 6;
+export const SPECTATE = 7;
 
 export const Handlers = [
+  handleAuthentication,
   handleFindOpponent,
   handleGameInfo,
   handleTurnUpdate,
@@ -20,13 +22,39 @@ export const Handlers = [
   handleGameOver,
   handleClickBoard,
   handleSpectate,
-  handleAuthentication,
 ];
+
+let ws = new WebSocket(`ws://${window.location.host}/game`);
+// let ws = new WebSocket(`ws://localhost/game`);
+ws.addEventListener("open", requestAuthentication);
+ws.addEventListener("close", resetGameState);
+ws.addEventListener("message", (e) => {
+  const data = JSON.parse(e.data);
+
+  if (data.type < 0) {
+    app.errorMessage = data.error;
+    console.error(data.error);
+  }
+
+  const handler = Handlers[data.type];
+  if (handler) {
+    handler(data);
+  } else {
+    console.log(`Handler for ${data.type} not found`);
+  }
+});
 
 let playerId = 0;
 let playerInfo = null;
 
-export function startFindingOpponent() {
+export function sendJson(data) {
+  data.token = app.token;
+  setTimeout(() => {
+    ws.send(JSON.stringify(data));
+  }, 10);
+}
+
+export function requestAuthentication() {
   let nickname = localStorage.getItem("nickname");
 
   if (!nickname) {
@@ -34,19 +62,31 @@ export function startFindingOpponent() {
     localStorage.setItem("nickname", nickname);
   }
 
+  sendJson({
+    type: AUTHENTICATION,
+    nickname,
+  });
+}
+
+export function startFindingOpponent() {
   app.scene = SCENE_MATCHING;
-  handleFindOpponent(nickname);
+  handleFindOpponent(true);
 }
 
 export function stopFindingOpponent() {
   app.scene = SCENE_MENU;
-  handleFindOpponent(null);
+  handleFindOpponent(false);
 }
 
-function handleFindOpponent(nickname) {
+export function handleAuthentication(ctx) {
+  app.token = ctx.token;
+  playerId = ctx.playerId;
+}
+
+function handleFindOpponent(flag) {
   sendJson({
     type: FIND_OPPONENT,
-    nickname: nickname,
+    flag,
   });
 }
 
@@ -62,7 +102,6 @@ export function handleGameInfo(ctx) {
   }
 
   orbit.reset();
-  //If the playerInfo is null which means spectating mode.
 }
 
 export function handleTurnUpdate(ctx) {
@@ -100,9 +139,4 @@ export function handleClickBoard(x, y) {
 
 export function handleSpectate(ctx) {
   //TODO
-}
-
-export function handleAuthentication(ctx) {
-  app.token = ctx.token;
-  playerId = ctx.playerId;
 }

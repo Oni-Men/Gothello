@@ -14,7 +14,7 @@ import (
 )
 
 var (
-	clients  = make(map[*websocket.Conn]bool)
+	// clients  = make(map[*websocket.Conn]bool)
 	upgrader = websocket.Upgrader{
 		// CheckOrigin: func(r *http.Request) bool {
 		// 	return true
@@ -37,6 +37,8 @@ func main() {
 	go matching()
 
 	addr := ":" + strconv.Itoa(*port)
+
+	log.Printf("Done. Listening on port %d\n", *port)
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
@@ -45,41 +47,40 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer ws.Close()
 
-	clients[ws] = true
+	// clients[ws] = true
 
-	var p *game.Player
+	p := handlePlayerInit(ws)
+	if p == nil {
+		return
+	}
+
 	for {
 		ctx := new(game.Context)
 		err := ws.ReadJSON(ctx)
 
 		if err != nil {
-			if p != nil {
-				game, ok := manager.Get(p.GameID)
-				if ok {
-					game.GameOverByExit(p)
-				} else {
-					q.Remove(p)
-				}
-				log.Printf("%s disconnected", p.Name)
-				log.Printf("%s", err)
+			game, ok := manager.Get(p.GameID)
+			if ok {
+				game.GameOverByExit(p)
 			} else {
-				log.Printf("error at reading json: %s", err)
+				q.Remove(p)
 			}
-			delete(clients, ws)
+			log.Printf("%s: %s", p.Name, err)
+			// delete(clients, ws)
 			break
 		}
 
-		if ctx.Type != game.FindOpponent {
-			if ctx.Token == "" || (p != nil && tokens[p] != ctx.Token) {
-				log.Printf("invalid token received")
-			}
+		if tokens[p] != ctx.Token {
+			log.Printf("無効なトークンを受け取りました: %s", p.Name)
+			sendError(p.Conn, "invalid token")
 		}
 
 		switch ctx.Type {
 		case game.FindOpponent:
-			p = handleFindOpponent(ctx, p, ws)
+			handleFindOpponent(ctx, p)
 		case game.ClickBoard:
 			handleClickBoard(ctx, p)
 		case game.Spectate:
@@ -92,7 +93,7 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 func matching() {
 	for {
 		time.Sleep(1 * time.Second)
-		for q.Length() >= 2 {
+		if q.Length() >= 2 {
 			a, b := q.Pop(), q.Pop()
 
 			// If connection was the same. won't start a game and put the player back in the queue.
@@ -123,26 +124,48 @@ func matching() {
 	}
 }
 
-func handleFindOpponent(ctx *game.Context, p *game.Player, ws *websocket.Conn) *game.Player {
-	if ctx.Nickname == nil && p != nil {
-		q.Remove(p)
-		log.Printf("%s quit the queue", p.Name)
-	} else {
-		p = game.NewPlayer(*ctx.Nickname, ws)
-		q.Push(p)
-		log.Printf("%s join the queue", p.Name)
+func handlePlayerInit(ws *websocket.Conn) *game.Player {
+	ctx := new(game.Context)
+	err := ws.ReadJSON(ctx)
 
-		token := generator.Token(16)
-		tokens[p] = token
-
-		p.Send(&game.Context{
-			Type:     game.Authentication,
-			PlayerID: p.ID,
-			Token:    token,
-		})
+	if err != nil {
+		sendError(ws, err.Error())
+		return nil
 	}
 
+	if ctx.Type != game.Authentication {
+		sendError(ws, "context type must be authentication")
+		return nil
+	}
+
+	p := game.NewPlayer(*ctx.Nickname, ws)
+
+	token := generator.Token(16)
+	tokens[p] = token
+
+	p.Send(&game.Context{
+		Type:     game.Authentication,
+		PlayerID: p.ID,
+		Token:    token,
+	})
+
 	return p
+}
+
+func handleFindOpponent(ctx *game.Context, p *game.Player) {
+	if ctx.Flag {
+		err := q.Push(p)
+
+		if err != nil {
+			log.Printf("キューへの追加に失敗しました: %s, %s", p.Name, err.Error())
+			sendError(p.Conn, err.Error())
+		}
+
+		log.Printf("キューに追加しました: %s", p.Name)
+	} else {
+		q.Remove(p)
+		log.Printf("キューから削除しました: %s", p.Name)
+	}
 }
 
 func handleClickBoard(ctx *game.Context, p *game.Player) {
@@ -150,4 +173,11 @@ func handleClickBoard(ctx *game.Context, p *game.Player) {
 	if ok && game.IsTurnPlayer(p) {
 		game.ClickBoard(ctx.DiscX, ctx.DiscY)
 	}
+}
+
+func sendError(ws *websocket.Conn, err string) {
+	ws.WriteJSON(game.Context{
+		Type:  game.Fail,
+		Error: err,
+	})
 }

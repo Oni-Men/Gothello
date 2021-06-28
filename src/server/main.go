@@ -14,7 +14,6 @@ import (
 )
 
 var (
-	// clients  = make(map[*websocket.Conn]bool)
 	upgrader = websocket.Upgrader{
 		// CheckOrigin: func(r *http.Request) bool {
 		// 	return true
@@ -50,8 +49,6 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 
 	defer ws.Close()
 
-	// clients[ws] = true
-
 	p := handlePlayerInit(ws)
 	if p == nil {
 		return
@@ -69,7 +66,6 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 				q.Remove(p)
 			}
 			log.Printf("%s: %s", p.Name, err)
-			// delete(clients, ws)
 			break
 		}
 
@@ -96,8 +92,7 @@ func matching() {
 		if q.Length() >= 2 {
 			a, b := q.Pop(), q.Pop()
 
-			// If connection was the same. won't start a game and put the player back in the queue.
-			if a.ConnectionEquals(b) {
+			if a.ConnectionEquals(b) || tokens[a] == tokens[b] {
 				q.Push(a)
 				continue
 			}

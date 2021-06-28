@@ -1,6 +1,9 @@
 package game
 
-import "errors"
+import (
+	"errors"
+	"log"
+)
 
 type Queue struct {
 	length uint16
@@ -74,6 +77,7 @@ func (q *Queue) Remove(player *Player) *Player {
 				prev.next = curr.next
 			}
 			q.length--
+			log.Printf("%sを削除", curr.player.Name)
 			return curr.player
 		}
 

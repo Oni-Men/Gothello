@@ -27,6 +27,11 @@ export async function loadObj(gl, modelName) {
   });
 }
 
+/**
+ * かなり参考にさせてもらった https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
+ * @param {*} text
+ * @returns
+ */
 export async function parseObj(text) {
   const vertPositions = [];
   const texCoords = [];

@@ -34,4 +34,9 @@ export const downloadBlob = (() => {
   };
 })();
 
+export function changeNickname() {
+  localStorage.setItem("nickname", "");
+  window.location.reload();
+}
+
 export default app;

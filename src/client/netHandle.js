@@ -25,7 +25,6 @@ export const Handlers = [
 ];
 
 let ws = new WebSocket(`ws://${window.location.host}/game`);
-// let ws = new WebSocket(`ws://localhost/game`);
 ws.addEventListener("open", requestAuthentication);
 ws.addEventListener("close", resetGameState);
 ws.addEventListener("message", (e) => {
@@ -57,10 +56,10 @@ export function sendJson(data) {
 export function requestAuthentication() {
   let nickname = localStorage.getItem("nickname");
 
-  if (!nickname) {
-    nickname = window.prompt("ニックネームを決めてください");
-    localStorage.setItem("nickname", nickname);
+  while (!nickname || nickname.length < 3) {
+    nickname = window.prompt("ニックネームを決めてください(3文字以上)");
   }
+  localStorage.setItem("nickname", nickname);
 
   sendJson({
     type: AUTHENTICATION,
@@ -86,7 +85,7 @@ export function handleAuthentication(ctx) {
 function handleFindOpponent(flag) {
   sendJson({
     type: FIND_OPPONENT,
-    flag,
+    flag: !!flag,
   });
 }
 

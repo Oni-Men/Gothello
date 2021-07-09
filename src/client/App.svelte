@@ -6,7 +6,7 @@
   import Loading from "./component/loading.svelte";
   import Message from "./component/message.svelte";
   import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
-  import { resetGameState } from "./main";
+  import { changeNickname, resetGameState } from "./main";
   import { startFindingOpponent, stopFindingOpponent } from "./netHandle";
   import { loadModels, init, renderGlobal } from "./render/render";
 
@@ -105,6 +105,7 @@
       <Message>{loadingMessage}</Message>
     </Background>
   {/if}
+  <img class="rename clickable" src="/tag.png" on:click={changeNickname} alt="Rename" />
 </main>
 
 <style>
@@ -116,5 +117,13 @@
   .view {
     width: 100%;
     height: 100%;
+  }
+
+  .rename {
+    position: absolute;
+    top: 1em;
+    left: 1em;
+    width: 1.5em;
+    height: 1.5em;
   }
 </style>

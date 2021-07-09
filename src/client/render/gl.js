@@ -45,6 +45,13 @@ export function createProgram(gl, vertexShader, fragmentShader) {
   return [null, error];
 }
 
+/**
+ * シェーダーを渡してプログラムそ作成する。失敗するとエラー文を返す。
+ * @param {*} gl
+ * @param {*} vertexShaderSource
+ * @param {*} fragmentShaderSource
+ * @returns
+ */
 export function createProgramFromShaders(gl, vertexShaderSource, fragmentShaderSource) {
   let error = null;
   let vertexShader, fragmentShader;
@@ -63,8 +70,8 @@ export function createProgramFromShaders(gl, vertexShaderSource, fragmentShaderS
 
 /**
  * VBOを作成する。バインドは解除される
- * @param {*} gl
- * @param {*} data
+ * @param {WebGLRenderingContext} gl
+ * @param {number[]} data
  * @returns
  */
 export function createVBO(gl, data) {
@@ -75,6 +82,12 @@ export function createVBO(gl, data) {
   return vbo;
 }
 
+/**
+ * IBOを作成する。バインドは解除される
+ * @param {WebGLRenderingContext} gl
+ * @param {number[]} data
+ * @returns
+ */
 export function createIBO(gl, data) {
   const ibo = gl.createBuffer();
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, ibo);

@@ -1,4 +1,11 @@
 <script>
+  /**
+    startColor: グラデーションの開始色
+    endColor: グラデーションの終了色
+    no_pointer: ポインターイベントの有効/無効
+    justify: 子要素の配置（フレックスレイアウト）
+   */
+
   export let startColor = "transparent";
   export let endColor = "transparent";
   export let no_pointer = false;

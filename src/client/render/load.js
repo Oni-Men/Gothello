@@ -1,5 +1,12 @@
 import { createVBO } from "./gl";
 
+/**
+ * パースされたJavascriptオブジェクトからWebGLバッファを作成する。
+ * こちらがレンダリングに直接用いられる
+ * @param {WebGLRenderingContext} gl
+ * @param {*} obj
+ * @returns
+ */
 function createBufferFromOBJ(gl, obj) {
   const bufferInfo = [];
 
@@ -17,6 +24,12 @@ function createBufferFromOBJ(gl, obj) {
   return bufferInfo;
 }
 
+/**
+ * モデル名からobjファイルを読み込み、WebGLバッファを作成する。
+ * @param {WebGLRenderingContext} gl
+ * @param {string} modelName 拡張子はいらない
+ * @returns
+ */
 export async function loadObj(gl, modelName) {
   const res = await fetch(`/model/${modelName}.obj`);
   const text = await res.text();
@@ -28,6 +41,7 @@ export async function loadObj(gl, modelName) {
 }
 
 /**
+ * objファイルをパースして、Javascriptのオブジェクトに変換する。
  * かなり参考にさせてもらった https://webglfundamentals.org/webgl/lessons/webgl-load-obj.html
  * @param {*} text
  * @returns

@@ -133,6 +133,16 @@ func handlePlayerInit(ws *websocket.Conn) *game.Player {
 		return nil
 	}
 
+	if ctx.Nickname == nil {
+		sendError(ws, "you must specifiy the nickname")
+		return nil
+	}
+
+	if len(*ctx.Nickname) < 3 {
+		sendError(ws, "the length of nickname is less than 3")
+		return nil
+	}
+
 	p := game.NewPlayer(*ctx.Nickname, ws)
 
 	token := generator.Token(16)

@@ -188,6 +188,14 @@ function processEvents(gl, mouseEvents, keyboardEvents) {
   return { screenshot, leftClick };
 }
 
+/**
+ *
+ * @param {*} gl GLコンテキスト
+ * @param {*} pvMatrix ビュー行列
+ * @param {*} x x座標
+ * @param {*} y y座標
+ * @param {*} flip オセロの石を裏返すか
+ */
 function renderDiscAt(gl, pvMatrix, x, y, flip) {
   const discModel = models["disc"];
   const mMatrix = mat4.create();

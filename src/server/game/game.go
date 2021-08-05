@@ -1,6 +1,8 @@
 package game
 
-import "othello/generator"
+import (
+	"othello/generator"
+)
 
 //Game オセロのゲームを管理する
 type Game struct {
@@ -37,38 +39,39 @@ func New(p1, p2 *Player, manager *Manager) *Game {
 	return g
 }
 
-//ok
-func (g *Game) ClickBoard(x, y int) {
-	if x < 0 || x >= 8 || y < 0 || y >= 8 {
+// ClickBoard Process click information sent by the client.
+func (g *Game) ClickBoard(cx, cy int) {
+	if cx < 0 || cx >= 8 || cy < 0 || cy >= 8 {
 		return
 	}
 
-	if g.Board[y][x] == DiscTransparent {
+	if g.Board[cy][cx] != DiscTransparent {
+		return
+	}
 
-		flippables, _ := g.getFlippableDiscs(x, y)
-		flipped := false
+	flippables, _ := g.getFlippableDiscs(cx, cy)
+	flipped := false
 
-		c := 0
-		for i := 0; i < 8; i++ {
-			for k := 0; k < 8; k++ {
-				if flippables[i][k] == 0 {
-					continue
-				}
-
-				flipped = true
-				g.Board[i][k] = g.TurnColor
-
-				_, n := g.getFlippableDiscs(k, i)
-				c += n
+	count := 0
+	for y := 0; y < 8; y++ {
+		for x := 0; x < 8; x++ {
+			if flippables[y][x] == 0 {
+				continue
 			}
-		}
 
-		if flipped {
-			g.Process = append(g.Process, byte(y*8+x))
+			flipped = true
 			g.Board[y][x] = g.TurnColor
-			g.noticeBoardUpdate()
-			g.updateTurn()
+
+			_, n := g.getFlippableDiscs(x, y)
+			count += n
 		}
+	}
+
+	if flipped {
+		g.Process = append(g.Process, byte(cy*8+cx))
+		g.Board[cy][cx] = g.TurnColor
+		g.noticeBoardUpdate()
+		g.updateTurn()
 	}
 }
 

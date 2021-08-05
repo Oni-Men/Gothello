@@ -5,7 +5,6 @@ import (
 	"log"
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -14,14 +13,10 @@ import (
 )
 
 var (
-	upgrader = websocket.Upgrader{
-		// CheckOrigin: func(r *http.Request) bool {
-		// 	return true
-		// },
-	}
-	tokens  = make(map[*game.Player]string)
-	q       = game.NewQueue()
-	manager = game.NewManager()
+	upgrader = websocket.Upgrader{}
+	tokens   = make(map[*game.Player]string)
+	q        = game.NewQueue()
+	manager  = game.NewManager()
 )
 
 func main() {
@@ -31,9 +26,7 @@ func main() {
 	fs := http.FileServer(http.Dir("./public"))
 
 	http.Handle("/", fs)
-	http.HandleFunc("/game", handleClients)
-
-	go matching()
+	http.HandleFunc("/game", handleClient)
 
 	addr := ":" + strconv.Itoa(*port)
 
@@ -41,8 +34,8 @@ func main() {
 	log.Fatal(http.ListenAndServe(addr, nil))
 }
 
-func handleClients(w http.ResponseWriter, r *http.Request) {
-	ws, err := upgrader.Upgrade(w, r, nil)
+func handleClient(writer http.ResponseWriter, req *http.Request) {
+	ws, err := upgrader.Upgrade(writer, req, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -56,21 +49,22 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 
 	for {
 		ctx := new(game.Context)
-		err := ws.ReadJSON(ctx)
 
-		if err != nil {
+		if err := ws.ReadJSON(ctx); err != nil {
 			game, ok := manager.Get(p.GameID)
 			if ok {
 				game.GameOverByExit(p)
+				log.Printf("退出によりゲーム終了: %s (%s)", p.Name, err)
 			} else {
 				q.Remove(p)
+				log.Printf("キューから削除: %s (%s)", p.Name, err)
 			}
-			log.Printf("%s: %s", p.Name, err)
 			break
 		}
 
-		if tokens[p] != ctx.Token {
-			log.Printf("無効なトークンを受け取りました: %s", p.Name)
+		token, ok := tokens[p]
+		if !ok || token != ctx.Token {
+			log.Printf("無効なトークンです: %s", p.Name)
 			sendError(p.Conn, "invalid token")
 		}
 
@@ -86,44 +80,41 @@ func handleClients(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func matching() {
-	for {
-		time.Sleep(1 * time.Second)
-		if q.Length() >= 2 {
-			a, b := q.Pop(), q.Pop()
-
-			if a.ConnectionEquals(b) || tokens[a] == tokens[b] {
-				q.Push(a)
-				continue
-			}
-
-			a.Color, b.Color = game.DiscBlack, game.DiscWhite
-			g := game.New(a, b, manager)
-			manager.Add(g)
-
-			a.GameID = g.ID()
-			b.GameID = g.ID()
-
-			ctx := &game.Context{
-				Type:        game.GameInfo,
-				BlackPlayer: g.BlackPlayer,
-				WhitePlayer: g.WhitePlayer,
-				GameID:      g.ID(),
-				TurnColor:   g.TurnColor,
-				Board:       &g.Board,
-			}
-
-			a.Send(ctx)
-			b.Send(ctx)
-		}
+func tryMatching() {
+	if q.Length() < 2 {
+		return
 	}
+
+	a, b := q.Pop(), q.Pop()
+
+	if a.ConnectionEquals(b) || tokens[a] == tokens[b] {
+		q.Push(a)
+		return
+	}
+
+	a.Color, b.Color = game.DiscBlack, game.DiscWhite
+	g := game.New(a, b, manager)
+	manager.Add(g)
+
+	a.GameID = g.ID()
+	b.GameID = g.ID()
+
+	ctx := &game.Context{
+		Type:        game.GameInfo,
+		BlackPlayer: g.BlackPlayer,
+		WhitePlayer: g.WhitePlayer,
+		GameID:      g.ID(),
+		TurnColor:   g.TurnColor,
+		Board:       &g.Board,
+	}
+
+	a.Send(ctx)
+	b.Send(ctx)
 }
 
 func handlePlayerInit(ws *websocket.Conn) *game.Player {
 	ctx := new(game.Context)
-	err := ws.ReadJSON(ctx)
-
-	if err != nil {
+	if err := ws.ReadJSON(ctx); err != nil {
 		sendError(ws, err.Error())
 		return nil
 	}
@@ -134,12 +125,12 @@ func handlePlayerInit(ws *websocket.Conn) *game.Player {
 	}
 
 	if ctx.Nickname == nil {
-		sendError(ws, "you must specifiy the nickname")
+		sendError(ws, "the nickname must not be empty")
 		return nil
 	}
 
 	if len(*ctx.Nickname) < 3 {
-		sendError(ws, "the length of nickname is less than 3")
+		sendError(ws, "the length of the nickname must be at least 3")
 		return nil
 	}
 
@@ -147,26 +138,21 @@ func handlePlayerInit(ws *websocket.Conn) *game.Player {
 
 	token := generator.Token(16)
 	tokens[p] = token
-
-	p.Send(&game.Context{
-		Type:     game.Authentication,
-		PlayerID: p.ID,
-		Token:    token,
-	})
+	p.SendToken(token)
 
 	return p
 }
 
 func handleFindOpponent(ctx *game.Context, p *game.Player) {
 	if ctx.Flag {
-		err := q.Push(p)
-
-		if err != nil {
-			log.Printf("キューへの追加に失敗しました: %s, %s", p.Name, err.Error())
+		if err := q.Push(p); err != nil {
+			log.Printf("キューへの追加に失敗: %s (%s)", p.Name, err.Error())
 			sendError(p.Conn, err.Error())
+		} else {
+			log.Printf("キューへの追加に成功: %s", p.Name)
+			tryMatching()
 		}
 
-		log.Printf("キューに追加しました: %s", p.Name)
 	} else {
 		q.Remove(p)
 		log.Printf("キューから削除しました: %s", p.Name)

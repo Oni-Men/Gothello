@@ -39,3 +39,11 @@ func (p *Player) Send(ctx *Context) {
 func (p *Player) ConnectionEquals(o *Player) bool {
 	return p.Conn == o.Conn
 }
+
+func (p *Player) SendToken(token string) {
+	p.Send(&Context{
+		Type:     Authentication,
+		PlayerID: p.ID,
+		Token:    token,
+	})
+}

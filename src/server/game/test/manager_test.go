@@ -2,6 +2,7 @@ package game
 
 import (
 	"othello/game"
+	"othello/player"
 	"testing"
 )
 
@@ -46,8 +47,8 @@ func TestManager(t *testing.T) {
 }
 
 func randomGame(m *game.Manager) *game.Game {
-	a := game.NewPlayer("A", nil)
-	b := game.NewPlayer("B", nil)
+	a := player.New("A", nil)
+	b := player.New("B", nil)
 
 	return game.New(a, b, m)
 }

@@ -4,14 +4,15 @@ import (
 	"math/rand"
 	"othello/game"
 	"othello/generator"
+	"othello/player"
 	"strings"
 	"testing"
 )
 
 func TestQueuePushAndPop(t *testing.T) {
-	q := game.NewQueue()
+	q := player.NewQueue()
 
-	players := []*game.Player{
+	players := []*player.Player{
 		RandomPlayer(),
 		RandomPlayer(),
 		RandomPlayer(),
@@ -38,9 +39,9 @@ func TestQueuePushAndPop(t *testing.T) {
 }
 
 func TestQueueRemove(t *testing.T) {
-	q := game.NewQueue()
+	q := player.NewQueue()
 
-	players := []*game.Player{
+	players := []*player.Player{
 		RandomPlayer(),
 		RandomPlayer(),
 		RandomPlayer(),
@@ -79,8 +80,8 @@ func TestGameUpdate(t *testing.T) {
 	game.ClickBoard(5, 3)
 }
 
-func RandomPlayer() *game.Player {
-	return &game.Player{
+func RandomPlayer() *player.Player {
+	return &player.Player{
 		ID:   generator.RandomID(),
 		Name: randomName(6),
 	}

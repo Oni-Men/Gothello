@@ -1,18 +1,22 @@
 package game
 
 import (
+	"othello/disc"
 	"othello/generator"
+
+	"othello/network"
+	"othello/player"
 )
 
 //Game オセロのゲームを管理する
 type Game struct {
 	id          int
 	manager     *Manager
-	Board       [8][8]Disc
-	BlackPlayer *Player
-	WhitePlayer *Player
-	Spectators  []*Player
-	TurnColor   Disc
+	Board       [8][8]disc.Disc
+	BlackPlayer *player.Player
+	WhitePlayer *player.Player
+	Spectators  []*player.Player
+	TurnColor   disc.Disc
 	Broadcast   chan Message
 	pass        int
 	GameOvered  bool
@@ -20,7 +24,7 @@ type Game struct {
 }
 
 //New 新しいゲームを作成します
-func New(p1, p2 *Player, manager *Manager) *Game {
+func New(p1, p2 *player.Player, manager *Manager) *Game {
 	g := &Game{
 		id:          generator.RandomID(),
 		BlackPlayer: p1,
@@ -29,12 +33,12 @@ func New(p1, p2 *Player, manager *Manager) *Game {
 		Process:     make([]byte, 0, 60),
 	}
 
-	g.Board[3][3] = DiscWhite
-	g.Board[3][4] = DiscBlack
-	g.Board[4][3] = DiscBlack
-	g.Board[4][4] = DiscWhite
+	g.Board[3][3] = disc.White
+	g.Board[3][4] = disc.Black
+	g.Board[4][3] = disc.Black
+	g.Board[4][4] = disc.White
 
-	g.TurnColor = DiscBlack
+	g.TurnColor = disc.Black
 
 	return g
 }
@@ -45,7 +49,7 @@ func (g *Game) ClickBoard(cx, cy int) {
 		return
 	}
 
-	if g.Board[cy][cx] != DiscTransparent {
+	if !g.Board[cy][cx].IsNone() {
 		return
 	}
 
@@ -86,14 +90,7 @@ func (g *Game) updateTurn() {
 		return
 	}
 
-	switch g.TurnColor {
-	case DiscTransparent:
-		g.TurnColor = DiscBlack
-	case DiscBlack:
-		g.TurnColor = DiscWhite
-	case DiscWhite:
-		g.TurnColor = DiscBlack
-	}
+	g.TurnColor.Flip()
 
 	if g.canPlaceDisc() {
 		g.pass = 0
@@ -102,8 +99,8 @@ func (g *Game) updateTurn() {
 		g.updateTurn()
 	}
 
-	g.noticeAll(&Context{
-		Type:      TurnUpdate,
+	g.noticeAll(&network.Context{
+		Type:      network.TurnUpdate,
 		TurnColor: g.TurnColor,
 	})
 
@@ -116,24 +113,24 @@ func (g *Game) noticeBoardUpdate() {
 		return
 	}
 
-	g.noticeAll(&Context{
-		Type:  BoardUpdate,
+	g.noticeAll(&network.Context{
+		Type:  network.BoardUpdate,
 		Board: &g.Board,
 	})
 }
 
 //ok
-func (g *Game) noticeGameOver(winner *Player) {
+func (g *Game) noticeGameOver(winner *player.Player) {
 	white, black := 0, 0
 
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 8; x++ {
-			disc := g.Board[y][x]
+			d := g.Board[y][x]
 
-			switch disc {
-			case DiscBlack:
+			switch d {
+			case disc.Black:
 				black++
-			case DiscWhite:
+			case disc.White:
 				white++
 			}
 		}
@@ -147,9 +144,9 @@ func (g *Game) noticeGameOver(winner *Player) {
 		}
 	}
 
-	g.noticeAll(&Context{
-		Type: GameOver,
-		Result: &GameResult{
+	g.noticeAll(&network.Context{
+		Type: network.GameOver,
+		Result: &network.GameResult{
 			ID:     g.id,
 			Black:  black,
 			White:  white,
@@ -165,7 +162,7 @@ func (g *Game) canPlaceDisc() bool {
 	c := 0
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 8; x++ {
-			if g.Board[y][x] == DiscTransparent {
+			if g.Board[y][x].IsNone() {
 				_, n := g.getFlippableDiscs(x, y)
 				c += n
 			}
@@ -209,7 +206,7 @@ func (g *Game) flippablesOfLine(x, y, tx, ty int, flippables *[8][8]byte) int {
 
 		d := g.Board[y][x]
 
-		if d == DiscTransparent {
+		if d.IsNone() {
 			flipped = nil
 			break
 		}
@@ -241,26 +238,26 @@ func (g *Game) ID() int {
 	return g.id
 }
 
-func (g *Game) IsTurnPlayer(p *Player) bool {
+func (g *Game) IsTurnPlayer(p *player.Player) bool {
 	switch g.TurnColor {
-	case DiscBlack:
+	case disc.Black:
 		return p == g.BlackPlayer
-	case DiscWhite:
+	case disc.White:
 		return p == g.WhitePlayer
 	}
 	return false
 }
 
 //ok
-func (g *Game) noticeAll(ctx *Context) {
-	g.BlackPlayer.Send(ctx)
-	g.WhitePlayer.Send(ctx)
+func (g *Game) noticeAll(ctx *network.Context) {
+	ctx.Send(g.BlackPlayer)
+	ctx.Send(g.WhitePlayer)
 	for _, p := range g.Spectators {
-		p.Send(ctx)
+		ctx.Send(p)
 	}
 }
 
-func (g *Game) GameOverByExit(player *Player) {
+func (g *Game) GameOverByExit(player *player.Player) {
 	if player == nil {
 		return
 	}

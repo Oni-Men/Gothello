@@ -8,14 +8,17 @@ import (
 
 	"github.com/gorilla/websocket"
 
+	"othello/disc"
 	"othello/game"
 	"othello/generator"
+	"othello/network"
+	"othello/player"
 )
 
 var (
 	upgrader = websocket.Upgrader{}
-	tokens   = make(map[*game.Player]string)
-	q        = game.NewQueue()
+	tokens   = make(map[*player.Player]string)
+	q        = player.NewQueue()
 	manager  = game.NewManager()
 )
 
@@ -48,11 +51,10 @@ func handleClient(writer http.ResponseWriter, req *http.Request) {
 	}
 
 	for {
-		ctx := new(game.Context)
+		ctx := new(network.Context)
 
 		if err := ws.ReadJSON(ctx); err != nil {
-			game, ok := manager.Get(p.GameID)
-			if ok {
+			if game, ok := manager.Get(p.GameID); ok {
 				game.GameOverByExit(p)
 				log.Printf("退出によりゲーム終了: %s (%s)", p.Name, err)
 			} else {
@@ -69,11 +71,11 @@ func handleClient(writer http.ResponseWriter, req *http.Request) {
 		}
 
 		switch ctx.Type {
-		case game.FindOpponent:
+		case network.FindOpponent:
 			handleFindOpponent(ctx, p)
-		case game.ClickBoard:
+		case network.ClickBoard:
 			handleClickBoard(ctx, p)
-		case game.Spectate:
+		case network.Spectate:
 			//TODO impl handle spectate
 		}
 
@@ -92,15 +94,15 @@ func tryMatching() {
 		return
 	}
 
-	a.Color, b.Color = game.DiscBlack, game.DiscWhite
+	a.Color, b.Color = disc.Black, disc.White
 	g := game.New(a, b, manager)
 	manager.Add(g)
 
 	a.GameID = g.ID()
 	b.GameID = g.ID()
 
-	ctx := &game.Context{
-		Type:        game.GameInfo,
+	ctx := &network.Context{
+		Type:        network.GameInfo,
 		BlackPlayer: g.BlackPlayer,
 		WhitePlayer: g.WhitePlayer,
 		GameID:      g.ID(),
@@ -108,18 +110,17 @@ func tryMatching() {
 		Board:       &g.Board,
 	}
 
-	a.Send(ctx)
-	b.Send(ctx)
+	ctx.Send(a, b)
 }
 
-func handlePlayerInit(ws *websocket.Conn) *game.Player {
-	ctx := new(game.Context)
+func handlePlayerInit(ws *websocket.Conn) *player.Player {
+	ctx := new(network.Context)
 	if err := ws.ReadJSON(ctx); err != nil {
 		sendError(ws, err.Error())
 		return nil
 	}
 
-	if ctx.Type != game.Authentication {
+	if ctx.Type != network.Authentication {
 		sendError(ws, "context type must be authentication")
 		return nil
 	}
@@ -134,16 +135,16 @@ func handlePlayerInit(ws *websocket.Conn) *game.Player {
 		return nil
 	}
 
-	p := game.NewPlayer(*ctx.Nickname, ws)
+	p := player.New(*ctx.Nickname, ws)
 
 	token := generator.Token(16)
 	tokens[p] = token
-	p.SendToken(token)
+	network.NewTokenContext(token, p.ID).Send(p)
 
 	return p
 }
 
-func handleFindOpponent(ctx *game.Context, p *game.Player) {
+func handleFindOpponent(ctx *network.Context, p *player.Player) {
 	if ctx.Flag {
 		if err := q.Push(p); err != nil {
 			log.Printf("キューへの追加に失敗: %s (%s)", p.Name, err.Error())
@@ -159,7 +160,7 @@ func handleFindOpponent(ctx *game.Context, p *game.Player) {
 	}
 }
 
-func handleClickBoard(ctx *game.Context, p *game.Player) {
+func handleClickBoard(ctx *network.Context, p *player.Player) {
 	game, ok := manager.Get(p.GameID)
 	if ok && game.IsTurnPlayer(p) {
 		game.ClickBoard(ctx.DiscX, ctx.DiscY)
@@ -167,8 +168,8 @@ func handleClickBoard(ctx *game.Context, p *game.Player) {
 }
 
 func sendError(ws *websocket.Conn, err string) {
-	ws.WriteJSON(game.Context{
-		Type:  game.Fail,
+	ws.WriteJSON(network.Context{
+		Type:  network.Fail,
 		Error: err,
 	})
 }

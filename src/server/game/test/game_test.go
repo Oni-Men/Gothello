@@ -2,13 +2,14 @@ package game
 
 import (
 	"othello/game"
+	"othello/player"
 	"testing"
 )
 
 func TestGame(t *testing.T) {
 
 	manager := game.NewManager()
-	game := game.New(RandomPlayer(), RandomPlayer(), manager)
+	game := game.New(player.NewRandomPlayer(), player.NewRandomPlayer(), manager)
 
 	manager.Add(game)
 

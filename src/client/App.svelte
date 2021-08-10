@@ -6,8 +6,7 @@
   import Loading from "./component/loading.svelte";
   import Message from "./component/message.svelte";
   import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
-  import { changeNickname, resetGameState } from "./main";
-  import { startFindingOpponent, stopFindingOpponent } from "./netHandle";
+  import { resetGameState, startFindingOpponent, stopFindingOpponent } from "./netHandle";
   import { loadModels, init, renderGlobal } from "./render/render";
 
   export let turn;
@@ -54,6 +53,11 @@
 
   function handleKeyboard(e) {
     keyboardEvents.push(e);
+  }
+
+  function changeNickname() {
+    localStorage.setItem("nickname", "");
+    window.location.reload();
   }
 </script>
 

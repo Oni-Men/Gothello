@@ -1,5 +1,5 @@
 import { SCENE_ENDING, SCENE_MATCHING, SCENE_MENU, SCENE_PLAYING } from "./define";
-import app, { resetGameState } from "./main";
+import app from "./main";
 import { Game } from "./game/game";
 import { orbit } from "./render/render";
 
@@ -51,6 +51,10 @@ export function sendJson(data) {
   setTimeout(() => {
     ws.send(JSON.stringify(data));
   }, 10);
+}
+
+export function resetGameState() {
+  app.scene = SCENE_MENU;
 }
 
 export function requestAuthentication() {

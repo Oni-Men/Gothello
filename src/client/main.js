@@ -13,30 +13,4 @@ const app = new App({
   },
 });
 
-export function resetGameState() {
-  app.scene = SCENE_MENU;
-}
-
-/**
- * https://webglfundamentals.org/webgl/lessons/webgl-tips.html
- */
-export const downloadBlob = (() => {
-  const a = document.createElement("a");
-  document.body.appendChild(a);
-  a.style.display = "none";
-
-  return (blob, fileName) => {
-    const url = window.URL.createObjectURL(blob);
-    a.href = url;
-    a.download = fileName;
-    a.click();
-    a.remove(); //Remove the element then took screenshot.
-  };
-})();
-
-export function changeNickname() {
-  localStorage.setItem("nickname", "");
-  window.location.reload();
-}
-
 export default app;

@@ -4,7 +4,6 @@ import { loadObj } from "./load";
 import VertexShaderSource from "./shader/vertex";
 import FragmentShaderSource from "./shader/fragment";
 import { mat4 } from "gl-matrix";
-import { downloadBlob } from "../main";
 import { Picker } from "./picker";
 import { handleClickBoard } from "../netHandle";
 import { SCENE_PLAYING } from "../define";
@@ -285,4 +284,19 @@ function resizeToClientSize(canvas) {
     return true;
   }
   return false;
+}
+
+/**
+ * https://webglfundamentals.org/webgl/lessons/webgl-tips.html
+ */
+function downloadBlob() {
+  return (blob, fileName) => {
+    const a = document.createElement("a");
+    document.body.appendChild(a);
+    a.style.display = "none";
+    a.href = window.URL.createObjectURL(blob);
+    a.download = fileName;
+    a.click();
+    a.remove(); //Remove the element then took screenshot.
+  };
 }

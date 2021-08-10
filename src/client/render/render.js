@@ -6,7 +6,7 @@ import FragmentShaderSource from "./shader/fragment";
 import { mat4 } from "gl-matrix";
 import { Picker } from "./picker";
 import { handleClickBoard } from "../netHandle";
-import { SCENE_PLAYING } from "../define";
+import { BLACK, SCENE_PLAYING, TRANSPARENT } from "../define";
 
 export const models = {
   disc: null,
@@ -116,8 +116,8 @@ export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
   if (board != null) {
     for (let y = 0; y < 8; y++) {
       for (let x = 0; x < 8; x++) {
-        if (board[y][x] === 0) continue;
-        renderDiscAt(gl, pvMatrix, x, y, board[y][x] == 1);
+        if (board[y][x] === TRANSPARENT) continue;
+        renderDiscAt(gl, pvMatrix, x, y, board[y][x] == BLACK);
       }
     }
   }

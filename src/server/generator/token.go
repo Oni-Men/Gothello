@@ -11,8 +11,8 @@ func init() {
 	rand.Seed(time.Now().UnixNano())
 }
 
-//Token トークンを生成する(参考: https://qiita.com/srtkkou/items/ccbddc881d6f3549baf1)
-func Token(n int) string {
+//NewToken トークンを生成する(参考: https://qiita.com/srtkkou/items/ccbddc881d6f3549baf1)
+func NewToken(n int) string {
 	b := make([]byte, n)
 	r := rand.Int63()
 

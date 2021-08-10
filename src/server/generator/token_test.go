@@ -1,7 +1,6 @@
-package test_generator
+package generator
 
 import (
-	"othello/generator"
 	"testing"
 )
 
@@ -20,7 +19,7 @@ func TestToken(t *testing.T) {
 }
 
 func validateToken(t *testing.T, n int) bool {
-	token := generator.Token(16)
+	token := NewToken(16)
 
 	if len(token) != 16 {
 		t.Logf("len(token) is not 16")

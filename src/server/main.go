@@ -137,7 +137,7 @@ func handlePlayerInit(ws *websocket.Conn) *player.Player {
 
 	p := player.New(*ctx.Nickname, ws)
 
-	token := generator.Token(16)
+	token := generator.NewToken(16)
 	tokens[p] = token
 	network.NewTokenContext(token, p.ID).Send(p)
 

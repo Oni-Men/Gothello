@@ -25,6 +25,12 @@ func NewQueue() *Queue {
 	}
 }
 
+func (q *Queue) Print() {
+	for e := q.first; e != nil; e = e.next {
+		print(e.player.Name + "->")
+	}
+}
+
 func (q *Queue) Push(player *Player) error {
 	if q.length >= 65535 {
 		return errors.New("queue is max")
@@ -36,12 +42,13 @@ func (q *Queue) Push(player *Player) error {
 
 	q.length++
 
-	if q.first == nil {
+	switch {
+	case q.first == nil:
 		q.first = e
-	} else if q.last == nil {
+	case q.last == nil:
 		q.last = e
 		q.first.next = q.last
-	} else {
+	default:
 		q.last.next = e
 		q.last = e
 	}
@@ -52,16 +59,21 @@ func (q *Queue) Push(player *Player) error {
 func (q *Queue) Pop() *Player {
 	q.length--
 
-	if q.first != nil {
-		r := q.first
-		q.first = q.first.next
-		return r.player
-	} else if q.last != nil {
-		r := q.last
-		return r.player
+	var r *Element = nil
+
+	switch {
+	case q.first != nil:
+		r = q.first
+		q.first = r.next
+	case q.last != nil:
+		r = q.last
 	}
 
-	return nil
+	if r == nil {
+		return nil
+	} else {
+		return r.player
+	}
 }
 
 func (q *Queue) Length() uint16 {

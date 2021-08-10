@@ -1,16 +1,15 @@
 package game
 
 import (
-	"othello/game"
 	"othello/player"
 	"testing"
 )
 
 func TestManager(t *testing.T) {
 
-	m := game.NewManager()
+	m := NewManager()
 
-	games := []*game.Game{
+	games := []*Game{
 		randomGame(m),
 		randomGame(m),
 		randomGame(m),
@@ -46,9 +45,9 @@ func TestManager(t *testing.T) {
 	}
 }
 
-func randomGame(m *game.Manager) *game.Game {
+func randomGame(m *Manager) *Game {
 	a := player.New("A", nil)
 	b := player.New("B", nil)
 
-	return game.New(a, b, m)
+	return NewGame(a, b, m)
 }

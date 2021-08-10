@@ -95,7 +95,7 @@ func tryMatching() {
 	}
 
 	a.Color, b.Color = disc.Black, disc.White
-	g := game.New(a, b, manager)
+	g := game.NewGame(a, b, manager)
 	manager.Add(g)
 
 	a.GameID = g.ID()

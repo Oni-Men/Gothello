@@ -23,8 +23,8 @@ type Game struct {
 	Process     []byte
 }
 
-//New 新しいゲームを作成します
-func New(p1, p2 *player.Player, manager *Manager) *Game {
+//NewGame 新しいゲームを作成します
+func NewGame(p1, p2 *player.Player, manager *Manager) *Game {
 	g := &Game{
 		id:          generator.RandomID(),
 		BlackPlayer: p1,

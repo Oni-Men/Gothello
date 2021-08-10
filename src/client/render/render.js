@@ -117,7 +117,7 @@ export function renderGlobal(gl, mouseEvents, keyboardEvents, state) {
     for (let y = 0; y < 8; y++) {
       for (let x = 0; x < 8; x++) {
         if (board[y][x] === 0) continue;
-        renderDiscAt(gl, pvMatrix, x, y, board[y][x] == 2);
+        renderDiscAt(gl, pvMatrix, x, y, board[y][x] == 1);
       }
     }
   }

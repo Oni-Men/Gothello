@@ -289,14 +289,12 @@ function resizeToClientSize(canvas) {
 /**
  * https://webglfundamentals.org/webgl/lessons/webgl-tips.html
  */
-function downloadBlob() {
-  return (blob, fileName) => {
-    const a = document.createElement("a");
-    document.body.appendChild(a);
-    a.style.display = "none";
-    a.href = window.URL.createObjectURL(blob);
-    a.download = fileName;
-    a.click();
-    a.remove(); //Remove the element then took screenshot.
-  };
+function downloadBlob(blob, fileName) {
+  const a = document.createElement("a");
+  document.body.appendChild(a);
+  a.style.display = "none";
+  a.href = window.URL.createObjectURL(blob);
+  a.download = fileName;
+  a.click();
+  a.remove(); //Remove the element then took screenshot.
 }

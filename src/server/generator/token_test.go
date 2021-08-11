@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-//テストより、同じ文字が4個以上含まれる確率はかなり低いはず
+//テストの結果から、同じ文字が4個以上含まれる確率はかなり低いはず
 func TestToken(t *testing.T) {
 	fail := 0
 	for i := 0; i < 100; i++ {

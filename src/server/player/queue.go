@@ -2,7 +2,7 @@ package player
 
 import (
 	"errors"
-	"log"
+	"fmt"
 )
 
 type Queue struct {
@@ -27,7 +27,7 @@ func NewQueue() *Queue {
 
 func (q *Queue) Print() {
 	for e := q.first; e != nil; e = e.next {
-		print(e.player.Name + "->")
+		fmt.Printf("%s\n", e.player.Name)
 	}
 }
 
@@ -57,8 +57,6 @@ func (q *Queue) Push(player *Player) error {
 }
 
 func (q *Queue) Pop() *Player {
-	q.length--
-
 	var r *Element = nil
 
 	switch {
@@ -71,9 +69,10 @@ func (q *Queue) Pop() *Player {
 
 	if r == nil {
 		return nil
-	} else {
-		return r.player
 	}
+
+	q.length--
+	return r.player
 }
 
 func (q *Queue) Length() uint16 {
@@ -82,15 +81,12 @@ func (q *Queue) Length() uint16 {
 
 func (q *Queue) Remove(player *Player) *Player {
 	var prev *Element
-	curr := q.first
-
-	for curr != nil {
+	for curr := q.first; curr != nil; curr = curr.next {
 		if curr.player.ID == player.ID {
 			if prev != nil {
 				prev.next = curr.next
 			}
 			q.length--
-			log.Printf("%sを削除", curr.player.Name)
 			return curr.player
 		}
 

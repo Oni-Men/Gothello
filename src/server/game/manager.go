@@ -6,7 +6,7 @@ const (
 
 //Manager ゲームのリストを管理する
 type Manager struct {
-	list    []*Entry
+	list []*Entry
 }
 
 type Entry struct {
@@ -16,7 +16,7 @@ type Entry struct {
 
 func NewManager() *Manager {
 	r := &Manager{
-		list:    make([]*Entry, capacity),
+		list: make([]*Entry, capacity),
 	}
 	return r
 }

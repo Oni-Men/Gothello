@@ -84,7 +84,6 @@ func handleClient(writer http.ResponseWriter, req *http.Request) {
 }
 
 func tryMatching() {
-	println("try matching")
 	if q.Length() < 2 {
 		return
 	}

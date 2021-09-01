@@ -73,7 +73,6 @@ func handleClient(writer http.ResponseWriter, req *http.Request) {
 		switch ctx.Type {
 		case network.FindOpponent:
 			handleFindOpponent(ctx, p)
-			q.Print()
 		case network.ClickBoard:
 			handleClickBoard(ctx, p)
 		case network.Spectate:
